@@ -431,6 +431,10 @@ class Brain(Daemon):
         self.tcp_port = kwargs["brain_port"]
         self.hostname = kwargs["brain_ip"]
         
+        self.faces = []
+        self.faceid = None
+        self.face_threshold = 60.0
+        
     def processCommand(self, s_in, s_type="text"):
         """Process incoming Commands/Data
         
@@ -450,8 +454,45 @@ class Brain(Daemon):
                     
                     logging.debug(self._name + " - WATCHER_DATA command received.")
 
-                    #TODO: Save this data
-                                        
+                    # Let's make sure we have data in the request
+                    if ("data" in data):
+                        
+                        # Okay, so here's the scoop on what we're saving.
+                        #
+                        # 1) For the "who do you see right now" we're going to mark all the people in the incoming frame.
+                        #    This will include unknown faces which is a little tricky.  We'll calculate the acceptable distance at 60.
+                        #    The distance is a guess and is definitely not going to be highly accurate with the models used, but
+                        #    it is a place to start for now.
+                        #
+                        # 2) For the person closest to the camera we're going to calculate that by dimensions of the face
+                        #    with a simple assumption that bigger faces are closer to the screen... based on area (w * h)
+                        
+                        self.faceid = None # Reset this on each processing task.
+                        
+                        max_dim = 0         # We'll use this to compare the dimensions
+                        max_dim_id = None   # We'll use this to store the ID of the largest
+                        i = 0               # counter for array parsing (we loop sequentially)
+                        
+                        # lets loop through the incoming faces and see what we see.
+                        for f in data["data"]:
+                            
+                            f["unknown"] = False
+                            f["last_seen"] = time.time()
+                            
+                            if float(f["distance"]) > self.face_threshold:
+                                f["id"] = -1
+                                f["unknown"] = True
+                        
+                            cur_dim = float(f["dimensions"]["width"]) * float(f["dimensions"]["height"])
+                            if cur_dim > max_dim:
+                                max_dim_id = i
+                                max_dim = cur_dim 
+                            
+                        #TODO: Save faces historically that we know (with a timestamp rather than constantly rebuilding)
+                        
+                        self.faces = data["data"]   # Will contain the "unknown" value plus a reset of the Id if unknown.
+                        self.faceid = max_dim_id    # Will be "None" if no faces or dimensions block is missing.
+                        
                     return json.dumps({ "error": False, "message": "OK" })
                     
                 elif str(data["command"]).lower().strip() == "kill_all":
@@ -555,10 +596,22 @@ class Brain(Daemon):
             #======================================
             
             
-            #TODO: Process input to determine WHAT to say.  Echo mode right now.
+            #TODO: Process input to determine WHAT to say.
             
-            # Echo whatever we heard.
-            self.say(s_in[12:].strip().lower())
+            # Testing the watcher function.
+            if ("who do you see" in txt.lower()):
+                #print(self.faces)
+                num_faces = len([f for f in self.faces if f["unknown"] == False])
+                if (num_faces == 0):
+                    self.say("I do not see anyone at the moment.")
+                if (num_faces == 1):
+                    self.say("I see " + str(num_faces) + " person.")
+                if (num_faces > 1):
+                    self.say("I see " + str(num_faces) + " people.")    
+            else:
+                # Print on debug log whatever we heard.
+                logging.debug(self._name + " - Heard " + str(txt))
+                #self.say(txt.lower())
             
             
             
@@ -1366,6 +1419,7 @@ class Watcher(Daemon):
         self._threadWatching = None     # Thread for capturing video frames
         self._threadManager = None      # Thread for managing the thread pool for sending info to the Brain
         self._OFFLINE = False           # Indicates if the brain is offline (unable to connect)
+        self._PAUSE = False             # Pause sending updates of faces
         
         self._dataset = None            # Our trained data set of faces (who belongs to which face)
         
@@ -1482,15 +1536,20 @@ class Watcher(Daemon):
 
                 # And now we save our person to our array of people.
                 people.append(person)
+                self._PAUSE = False # Used to send the latest frame, even if no people are present
             
             # Send the list of people in the frame to the brain.
             # We do this on a separate thread to avoid blocking the image capture process.
             # Technically we could have offloaded the entire recognizer process to a separate 
             # thread so may need to consider doing that in the future.
-            if (len(people) > 0):
+            if (len(people) > 0) or self._PAUSE == False:
                 # We only send data to the brain when we have something to send.
                 t = self.sendWatcherData(people)
                 self._threads.append(t)
+                self._PAUSE = True # Set to pause unless I have people.
+                
+            if (len(people) > 0):
+                self._PAUSE = False # Need to sort out the logic b/c we shouldn't have to count the array again.
             
             # Here we are trying to read only 1 frame per the defined FPS setting (default to 1 per sec).
             # Standard NTSC is 30+ frames per second so this should significantly
@@ -1506,6 +1565,11 @@ class Watcher(Daemon):
 
     def _startWatching(self):
         """Starts a thread for watching to the video device."""
+        
+        # Let's make sure we have a trained data set to work with before we fire up the watcher.
+        if self.TRAINED_FILE is None or os.path.exists(self.TRAINED_FILE) == False:
+            logging.error(self._name + " - Trained file does not exist.  Please try training with --watcher-exec-train")
+            return False
         
         # Check if we're already watching and if so then exit.
         if (self._threadWatching is not None) and (self._threadWatching.isAlive()):
