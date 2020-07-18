@@ -3,5 +3,6 @@
 DIR="$(cd "$(dirname "$0")" && pwd)"
 cd $DIR
 
-export DISPLAY=:0
-python3.7 ./karen.py "$@"
+nohup python3 -u startup.py "$@" >> /tmp/karen.log 2>> /tmp/karen.log &
+
+exit
