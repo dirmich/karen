@@ -239,15 +239,20 @@ if __name__ == "__main__":
     if ARGS.listener_start:
         t_listener = startListener(listener_config)
     
+    try:
     
-    if t_brain is not None:
-        t_brain.join()
+        if t_brain is not None:
+            t_brain.join()
+            
+        if t_listener is not None:
+            t_listener.join()
+            
+        if t_speaker is not None:
+            t_speaker.join()
+            
+        if t_watcher is not None:
+            t_watcher.join()
         
-    if t_listener is not None:
-        t_listener.join()
+    except KeyboardInterrupt:
+        pass
         
-    if t_speaker is not None:
-        t_speaker.join()
-        
-    if t_watcher is not None:
-        t_watcher.join()

@@ -38,15 +38,17 @@ def py_error_handler(filename, line, function, err, fmt):
     # Convert the parameters to strings for logging calls
     fmt = fmt.decode("utf-8")
     filename = filename.decode("utf-8")
-    function = function.decode('utf-8')
+    fnc = function.decode('utf-8')
 
     # Poor attempt at formating the output of the trapped errors
     fmt = "CTYPES - " + fmt
         
-    if ("%s" in fmt) and ("%i" in fmt):
-        logging.debug(fmt % (function, line))
-    elif ("%s" in fmt):
-        logging.debug(fmt % (function))
+    if (fmt.count("%s") == 1 and fmt.count("%i") == 1):
+        logging.debug(fmt % (fnc, line))
+    elif (fmt.count("%s") == 1):
+        logging.debug(fmt % (fnc))
+    elif (fmt.count("%s") == 2):
+        logging.debug(fmt % (fnc, str(err)))
     else:
         logging.debug(fmt)
     return

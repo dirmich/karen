@@ -16,6 +16,8 @@ import pyaudio, queue, webrtcvad, collections
 import deepspeech
 from ctypes import CFUNCTYPE, cdll, c_char_p, c_int
 
+import json
+
 class Listener(TCPServer):
     
     def __init__(self, **kwargs):
@@ -264,9 +266,10 @@ class Listener(TCPServer):
             if x_ret["error"] == False:
                 return True
             else:
-                if ("message" in x_ret["message"]):
-                    logging.debug(self._name + " - Audio processing error - " + str(x_ret["message"]["message"]))
-                else:
+                try:
+                    msg = json.loads(x_ret["message"])
+                    logging.debug(self._name + " - Audio processing error - " + str(msg["message"]))
+                except:
                     logging.debug(self._name + " - Audio processing error - " + str(x_ret["message"]))
                 return False
             
