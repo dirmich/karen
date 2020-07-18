@@ -363,8 +363,6 @@ class Watcher(TCPServer):
     def sendWatcherData(self, data):
         """Simple thread used to send captured data to the brain"""
         
-        #TODO: Consider keeping TCP open to reduce overhead since this will send new data at least every second depending on the FPS setting.
-
         try:
             
             if self.use_http == True:

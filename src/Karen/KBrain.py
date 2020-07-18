@@ -160,9 +160,7 @@ class Brain(TCPServer):
                         if payload["type"].lower() == "watcher_data":
                             try:
                                 
-                                #TODO: Save Watcher Data
                                 try:
-                                    #print("WATCHER COMMAND IN BRAIN: " + str(payload["data"]))
                                     in_data = payload["data"]
                                     w_data = self.getWatcherData()
                                     people = People(w_data)

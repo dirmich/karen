@@ -8,7 +8,7 @@ Created on Jul 12, 2020
 
 '''
 
-import json, logging, time, socket, threading
+import json, logging, time, socket, threading, random
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 import urllib3, requests, ssl
@@ -112,41 +112,44 @@ class TCPServer(object):
             self.isOffline = True 
             bFirstTime = True 
             
+        sleepTimer = 10
+            
         #bNotRegistered = True
         while self._TCPServer_running:
             try:
                 x_stat = self._registerWithBrain()
                 if x_stat == True:
                     if self.isOffline == True or bFirstTime:
-                        logging.info(i_type + " - Registered with BRAIN successfully.")
+                        logging.info(i_type.upper() + " - Registered with BRAIN successfully.")
                         self.isOffline = False
                         bFirstTime = False
+                        sleepTimer = random.randint(45, 75) # So that all clients don't hit the brain at the same time
                     else:
-                        logging.debug(i_type + " - Registered with BRAIN successfully.")
+                        logging.debug(i_type.upper() + " - Registered with BRAIN successfully.")
                     
                 if x_stat == False:
                     if self.isOffline == False or bFirstTime:
-                        logging.error(i_type + " - Error:  Failed to register with BRAIN.")
+                        logging.error(i_type.upper() + " - Error:  Failed to register with BRAIN.")
                         self.isOffline = True
                         bFirstTime = False
                     else:
-                        logging.debug(i_type + " - Error:  Failed to register with BRAIN.") 
+                        logging.debug(i_type.upper() + " - Error:  Failed to register with BRAIN.") 
     
                     #bNotRegistered = True
                     
                 #bNotRegistered = False
             except:
                 if self.isOffline == False or bFirstTime:
-                    logging.error(i_type + " - Error:  Failed to register with BRAIN.")
+                    logging.error(i_type.upper() + " - Error:  Failed to register with BRAIN.")
                     self.isOffline = True
                     bFirstTime = False
                 else:
-                    logging.debug(i_type + " - Error:  Failed to register with BRAIN.")
+                    logging.debug(i_type.upper() + " - Error:  Failed to register with BRAIN.")
     
                     
                 #bNotRegistered = True
             
-            time.sleep(10) # Wait 5 secs and try again.
+            time.sleep(sleepTimer) 
     
     @threaded
     def _acceptConnection(self, conn, address):
