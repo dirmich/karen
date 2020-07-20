@@ -49,6 +49,11 @@ class Watcher(TCPServer):
         # Model for recognizing the objects that were detected.
         # e.g. Who's face it is that we're looking at.
         self.TRAINED_FILE = kwargs["trained"]
+        if self.TRAINED_FILE is None or self.TRAINED_FILE.strip() == "":
+            import tempfile
+            self.TRAINED_FILE = os.path.join(tempfile.gettempdir(), "karen", "faces.yml")
+            
+        os.makedirs(os.path.dirname(self.TRAINED_FILE), exist_ok=True)
         
         # Watcher FPS determines the number of frames per second that we
         # want to process for incoming objects.  Since this is video
@@ -85,6 +90,7 @@ class Watcher(TCPServer):
         self._model = cv2.CascadeClassifier(self.MODEL_FILE);
         
         self._threadPool_watcher = []
+
         
     @threaded
     def _acceptConnection(self, conn, address):
@@ -262,6 +268,7 @@ class Watcher(TCPServer):
         # Let's make sure we have a trained data set to work with before we fire up the watcher.
         if self.TRAINED_FILE is None or os.path.exists(self.TRAINED_FILE) == False:
             logging.error(self._name + " - Trained file does not exist.  Please try training with --watcher-exec-train")
+            self.stop()
             return False
         
         # Check if we're already watching and if so then exit.
@@ -336,10 +343,21 @@ class Watcher(TCPServer):
         """Kicks off the main thread runtime for the Daemon.
         
         Will continue running until watcher is stopped or thread fails."""
+        if self.TRAINED_FILE is None or os.path.exists(self.TRAINED_FILE) == False:
+            if self.input_folder is not None and os.path.exists(self.input_folder) == True:
+                logging.info(self._name + " - Trained file not found.  Attempting to train now.")
+                self.train()
+            else:
+                logging.error(self._name + " - Startup failed:  Trained file not found.  Did you already train?")
+                return False
         
         # If we were were not disabled on start then we need to start listening.
         if self.DISABLE_ON_START == False:
-            self._startWatching() # Starts its own thread
+            ret_val = self._startWatching() # Starts its own thread
+            
+            if ret_val == False:
+                return False
+            
         
         # Start up the TCP Server
         super().run()

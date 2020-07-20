@@ -1,6 +1,6 @@
 from Karen import Skill 
 import logging 
-import time 
+import time, json 
 
 class WhoISeeSkill(Skill):
     def __init__(self):
@@ -10,11 +10,18 @@ class WhoISeeSkill(Skill):
     def initialize(self):
         self.register_intent_file("whoisee.intent", self.handle_whoisee_intent)
         
+        self.people = []
+        try:
+            self.people = json.loads(self.getContentsFromVocabFile("people.json"))
+        except Exception as e:
+            print(e)
+            pass
+        
 
     def handle_whoisee_intent(self, message):
         if message.conf == 1.0:
             #print(message)
-            data = self.brain.getWatcherData()
+            data = self.getDataFromBrain("watcher_data")
             t = time.time()
             counter = 0
             person = None
@@ -30,9 +37,16 @@ class WhoISeeSkill(Skill):
                 return self.say("I do not see anyone at the moment.") 
             
             if counter == 1:
-                if person["idx"] == 1:
-                    return self.say("I see lnx user 1.")
-                else:
+                bFound = False
+                for item in self.people:
+                    if item["id"] == person["idx"]:
+                        if "spoken" in item:
+                            return self.say("I see "+str(item["spoken"])+".")                        
+                        else:
+                            return self.say("I see "+str(item["name"])+".")
+                        bFound = True
+
+                if bFound == False:
                     return self.say("I see one person.")
             
             if counter > 1:

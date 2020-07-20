@@ -40,7 +40,7 @@ class Brain(TCPServer):
         self.mem_path = kwargs["mem_path"]
         if self.mem_path is None:
             import tempfile
-            self.mem_path = tempfile.gettempdir()
+            self.mem_path = os.path.join(tempfile.gettempdir(), "karen")
         
         os.makedirs(self.mem_path, exist_ok=True)
         
@@ -289,7 +289,7 @@ class Brain(TCPServer):
         return self.getFileData("devices.json")
     
     def getFileData(self, file_name):
-        t_file = os.path.join(self.mem_path, self._name + "." + file_name)
+        t_file = os.path.join(self.mem_path, self._name + "." + file_name.lower())
         t = []
         if os.path.exists(t_file):
             with open(t_file, 'r') as fp:

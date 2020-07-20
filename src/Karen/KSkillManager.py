@@ -112,6 +112,22 @@ class Skill:
             return text
         else:
             return ""
+        
+    def getContentsFromVocabFile(self, filename):
+        filename = os.path.join(os.path.dirname(__file__), "skills", self.__class__.__name__, "vocab", "en_us", filename)
+        if os.path.exists(filename):
+            with open(filename, "r") as f:
+                text = f.read()
+                
+            return text
+        else:
+            return ""
+        
+    def getDataFromBrain(self, x_type="watcher_data"):
+        if x_type != "":
+            return self.brain.getFileData(str(x_type).lower()+".json")
+        else:
+            return []
 
     def initialize(self):
         return True
