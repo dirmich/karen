@@ -148,6 +148,9 @@ class Speaker(TCPServer):
                 logging.info(self._name + " - Visual failed to start")
                 return False
 
+        else:
+            logging.error(self._name + " - Visualizer not configured")
+
         # This isn't a critical function so we'll pretend like everything is great.
         return True
     

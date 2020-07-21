@@ -118,7 +118,7 @@ class Watcher(TCPServer):
                     return True
             
                 elif my_cmd == "start_watcher":
-                    ret_val = self.startWatching()
+                    ret_val = self._startWatching()
                     if (ret_val):
                         JSON_response(conn, { "error": False, "message": "Watcher started." })
                     else:
@@ -128,7 +128,7 @@ class Watcher(TCPServer):
                     return True
                 
                 elif my_cmd == "stop_watcher":
-                    ret_val = self.stopWatching()
+                    ret_val = self._stopWatching()
                     if (ret_val):
                         JSON_response(conn, { "error": False, "message": "Watcher stopped." })
                     else:
@@ -448,6 +448,8 @@ class Watcher(TCPServer):
         faceSamples=[]
         ids = []
 
+        model = cv2.CascadeClassifier(self.MODEL_FILE);
+
         # Loop through input images in the folder supplied.
         for imagePath in imagePaths:
             try:
@@ -464,7 +466,7 @@ class Watcher(TCPServer):
                 logging.debug(self._name + " - Training input: " + imagePath)
                 
                 # Let's pull out the faces from the image (may be more than one!)
-                faces = self._model.detectMultiScale(img_numpy)
+                faces = model.detectMultiScale(img_numpy)
             
                 # Let's make sure we only have one image per face
                 if len(faces) > 1:

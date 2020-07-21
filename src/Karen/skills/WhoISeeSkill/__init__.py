@@ -29,7 +29,7 @@ class WhoISeeSkill(Skill):
             l = len(data)
             if l > 0:
                 for z in data:
-                    if z["lastFrame"] == True or z["last_seen"] > t - 5:
+                    if z["lastFrame"] == True and z["last_seen"] > (t - 5):
                         counter = counter + 1
                         person = z
             
