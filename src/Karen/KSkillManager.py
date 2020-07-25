@@ -1,9 +1,9 @@
 '''
 Project Karen: Synthetic Human
-Created on Jul 12, 2020
+Created on July 12, 2020
 
 @author: lnxusr1
-@license: MIT Lincense
+@license: MIT License
 @summary: Skill and Skill Manager classes for learned skills
 
 '''
@@ -47,7 +47,7 @@ class SkillManager:
 
         logging.debug(self._name + " - Training completed.")
 
-        logging.debug(self._name + " - Initalization completed.")
+        logging.debug(self._name + " - Initialization completed.")
         
         
         #print(container.calc_intents('Hello there!'))
@@ -57,6 +57,19 @@ class SkillManager:
         
     def parseInput(self, text):
 
+        def audioFallback(in_text):
+            
+            if "thanks" in in_text or "thank you" in in_text:
+                if self.brain is not None:
+                    res = self.brain.say("You're welcome.")
+                    if res["error"] == False:
+                        return { "error": False, "message": "Skill completed successfully." }
+                
+                
+                                        
+            print("fallback: " + in_text)
+            return { "error": True, "message": "Intent not understood." }
+
         try:
             intent = self.intentParser.calc_intent(text)
             #print(intent)
@@ -64,10 +77,18 @@ class SkillManager:
             if intent.conf >= 0.6:
                 for s in self.skills:
                     if intent.name == s["intent_file"]:
-                        s["callback"](intent)
-                        return { "error": False, "message": "Skill completed successfully." }
+                        #TODO: What happens if we get an incorrect intent determination?
+                        ret_val = s["callback"](intent)
+                        try:
+                            if ret_val["error"] == True:
+                                return audioFallback(text)
+                            else:
+                                return { "error": False, "message": "Skill completed successfully." }
+                        except:
+                            # Should we just assume it completed successfully?
+                            return { "error": False, "message": "Skill completed successfully." }
             else:
-                return { "error": True, "message": "Intent not understood." }
+                return audioFallback(text)
         except Exception as e:
             logging.debug(self._name + " - " + str(e))
             return { "error": True, "message": "Error occurred in processing." }

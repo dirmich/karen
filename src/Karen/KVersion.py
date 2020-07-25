@@ -1,9 +1,9 @@
 '''
 Project Karen: Synthetic Human
-Created on Jul 12, 2020
+Created on July 12, 2020
 
 @author: lnxusr1
-@license: MIT Lincense
+@license: MIT License
 @summary: Version Details
 
 '''
@@ -13,8 +13,8 @@ __APP_NAME__="Project Karen: Synthentic Human"      # Application Name
 
 # Version Info
 __APP_MAJOR__=0
-__APP_MINOR__=3
-__APP_BUILD__=20200718
+__APP_MINOR__=4
+__APP_BUILD__=20200720
 
 # Aliases
 name=__APP_NAME__

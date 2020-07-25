@@ -1,9 +1,9 @@
 '''
 Project Karen: Synthetic Human
-Created on Jul 12, 2020
+Created on July 12, 2020
 
 @author: lnxusr1
-@license: MIT Lincense
+@license: MIT License
 @summary: Brain Daemon
 
 '''
@@ -140,15 +140,9 @@ class Brain(TCPServer):
 
                                 result = self.skill_manager.parseInput(payload["data"])
                                 if result["error"] == True:
-                                    if "thanks" in payload["data"] or "thank you" in payload["data"]:
-                                        res = self.say("You're welcome.")
-                                        if res["error"] == False:
-                                            JSON_response(conn, res)
-                                        else:
-                                            JSON_response(conn, res)
-                                    else:
-                                        logging.error(self._name + " - Error in speech parsing: " + str(result["message"]))
-                                        JSON_response(conn, { "error": True, "message": "Error in speech parsing: " + str(result["message"]) })
+                                    logging.error(self._name + " - Error in speech parsing: " + str(result["message"]))
+                                    JSON_response(conn, { "error": True, "message": "Error in speech parsing: " + str(result["message"]) })
+                                    return False
                                 else:
                                     JSON_response(conn, { "error": False, "message": "AUDIO_INPUT received." })
 

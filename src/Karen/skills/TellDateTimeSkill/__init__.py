@@ -1,3 +1,12 @@
+'''
+Project Karen: Synthetic Human
+Created on Jul 20, 2020
+
+@author: lnxusr1
+@license: MIT License
+@summary: Basic skill to respond audibly to questions about time
+
+'''
 from Karen import Skill, KShared 
 import logging, time
 
@@ -24,7 +33,7 @@ class TellDateTimeSkill(Skill):
              
             return self.say(text)
                     
-        return { "error": False, "message": "OK" }
+        return { "error": True, "message": "Intent not understood" }
     
     def handle_telldate_intent(self, message):
         if message.conf == 1.0:

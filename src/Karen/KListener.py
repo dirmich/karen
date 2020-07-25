@@ -1,9 +1,9 @@
 '''
 Project Karen: Synthetic Human
-Created on Jul 12, 2020
+Created on July 12, 2020
 
 @author: lnxusr1
-@license: MIT Lincense
+@license: MIT License
 @summary: Listener Daemon
 
 '''

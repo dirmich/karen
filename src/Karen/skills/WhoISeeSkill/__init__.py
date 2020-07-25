@@ -1,3 +1,12 @@
+'''
+Project Karen: Synthetic Human
+Created on Jul 20, 2020
+
+@author: lnxusr1
+@license: MIT Lincense
+@summary: Basic skill to audibly respond to questions on faces detected.
+
+'''
 from Karen import Skill 
 import logging 
 import time, json 
@@ -53,7 +62,7 @@ class WhoISeeSkill(Skill):
                 return self.say("I see "+str(counter)+" people.")
             
                     
-        return { "error": False, "message": "OK" }
+        return { "error": True, "message": "Intent not understood" }
     
     def stop(self):
         return True

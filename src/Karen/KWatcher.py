@@ -1,9 +1,9 @@
 '''
 Project Karen: Synthetic Human
-Created on Jul 12, 2020
+Created on July 12, 2020
 
 @author: lnxusr1
-@license: MIT Lincense
+@license: MIT License
 @summary: Watcher Daemon
 
 '''
@@ -470,18 +470,18 @@ class Watcher(TCPServer):
             
                 # Let's make sure we only have one image per face
                 if len(faces) > 1:
-                    logging.error(self._name + " - Multiple faces detected in: " + imagePath)
-                else:
-                    # Loop through faces object for detection ... and there should only be 1. 
-                    for (x,y,w,h) in faces:
-                        
-                        # Let's save the results of what we've found so far.
-                        
-                        # Yes, we are cutting out the face from the image and storing in an array.
-                        faceSamples.append(img_numpy[y:y+h,x:x+w]) 
-                        
-                        # Ids go in the ID array.
-                        ids.append(i_id)
+                    logging.warning(self._name + " - Multiple faces detected in: " + imagePath)
+            
+                # Loop through faces object for detection ... and there should only be 1. 
+                for (x,y,w,h) in faces:
+                    
+                    # Let's save the results of what we've found so far.
+                    
+                    # Yes, we are cutting out the face from the image and storing in an array.
+                    faceSamples.append(img_numpy[y:y+h,x:x+w]) 
+                    
+                    # Ids go in the ID array.
+                    ids.append(i_id)
             except:
                 logging.error(self._name + " - Failed to process: " + imagePath)
 

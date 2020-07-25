@@ -1,3 +1,12 @@
+'''
+Project Karen: Synthetic Human
+Created on Jul 12, 2020
+
+@author: lnxusr1
+@license: MIT Lincense
+@summary: Basic skill to respond to greetings like "Hello"
+
+'''
 from Karen import Skill 
 import logging 
 
@@ -23,7 +32,7 @@ class HelloSkill(Skill):
                 else:
                     return self.say("Hello")
         
-        return { "error": False, "message": "OK" }
+        return { "error": True, "message": "Intent not understood" }
     
     def stop(self):
         return True
