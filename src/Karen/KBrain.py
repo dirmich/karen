@@ -24,6 +24,9 @@ class Brain(TCPServer):
         
         self._name = "BRAIN"
         
+        self._waitAsk = False
+        self._waitAsk_callback = None
+        
         self.hostname = kwargs["ip"]
         self.tcp_port = kwargs["port"]
 
@@ -138,7 +141,14 @@ class Brain(TCPServer):
                                     utterences.pop(0)
                                 self.saveSpeakerData(utterences)
 
-                                result = self.skill_manager.parseInput(payload["data"])
+                                if self._waitAsk and self._waitAsk_callback is not None:
+                                    result = self._waitAsk_callback(payload["data"])
+                                    self._waitAsk = None
+                                    self._waitAsk_callback = None 
+                                    
+                                else:
+                                    result = self.skill_manager.parseInput(payload["data"])
+                                    
                                 if result["error"] == True:
                                     logging.error(self._name + " - Error in speech parsing: " + str(result["message"]))
                                     JSON_response(conn, { "error": True, "message": "Error in speech parsing: " + str(result["message"]) })
@@ -279,6 +289,71 @@ class Brain(TCPServer):
         
         return False        
     
+    def ask(self, in_text, in_callback):
+
+        logging.info(self._name + " - Asking: "+in_text)
+
+        # Synchronous Requests to Start Speech Output
+        x_ret = { "error": True, "message": "Command not completed." }
+
+        try:
+
+            url_prefix = "https://"
+            if self.use_http:
+                url_prefix = "http://"
+
+            devices = self.getDevices()
+
+            dSave = False
+
+            for d in devices:
+                if d["type"] == "listener" and d["status"] == True:
+                    listener_url = url_prefix + d["ip"] + ":" + str(d["port"]) + "/control"
+                    try:
+                        JSON_request(listener_url, { "command": "AUDIO_OUT_START" })
+                    except:
+                        d["status"] = False
+                        dSave = True
+                        pass 
+                    
+            # Send to Primary Speaker
+            speaker_dev = None
+            for d in devices:
+                if d["type"] == "speaker" and d["status"] == True:
+                    speaker_dev = url_prefix + d["ip"] + ":" + str(d["port"]) + "/control"
+                    try:
+                        x_ret = JSON_request(speaker_dev, { "command": "SAY", "data": in_text })
+                    except Exception as e:
+                        x_ret = { "error": True, "message": str(e) }
+                        d["status"] = False
+                        dSave = True
+                        
+        
+            for d in devices:
+                if d["type"] == "listener" and d["status"] == True:
+                    listener_url = url_prefix + d["ip"] + ":" + str(d["port"]) + "/control"
+                    try:
+                        JSON_request(listener_url, { "command": "AUDIO_OUT_END" })
+                    except:
+                        d["status"] = False
+                        dSave = True
+                        pass 
+                    
+            if dSave == True:
+                self.saveDevices(devices)
+            
+        except Exception as e:
+            logging.debug(self._name + " - SAY task error: " + str(e))
+            return { "error": True, "message": str(e) }
+        
+        if (x_ret["error"] == False):
+            self._waitAsk = True
+            self._waitAsk_callback = in_callback
+        
+            return { "error": False, "message": "ASK completed successfully." }
+        else:
+            return { "error": True, "message": x_ret["message"] }
+    
     def getDevices(self):
         return self.getFileData("devices.json")
     
@@ -320,9 +395,9 @@ class Brain(TCPServer):
         return self.saveFileData(watcher_data, "watcher_data.json")
         
 
-    def say(self, text):
+    def say(self, in_text):
 
-        logging.info(self._name + " - Saying: "+text)
+        logging.info(self._name + " - Saying: "+in_text)
 
         # Synchronous Requests to Start Speech Output
         x_ret = { "error": True, "message": "Command not completed." }
@@ -353,7 +428,7 @@ class Brain(TCPServer):
                 if d["type"] == "speaker" and d["status"] == True:
                     speaker_dev = url_prefix + d["ip"] + ":" + str(d["port"]) + "/control"
                     try:
-                        x_ret = JSON_request(speaker_dev, { "command": "SAY", "data": text })
+                        x_ret = JSON_request(speaker_dev, { "command": "SAY", "data": in_text })
                     except Exception as e:
                         x_ret = { "error": True, "message": str(e) }
                         d["status"] = False

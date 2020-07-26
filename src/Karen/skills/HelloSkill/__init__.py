@@ -19,12 +19,15 @@ class HelloSkill(Skill):
         self.register_intent_file("hello.intent", self.handle_hello_intent)
         
 
+    def handle_help_response(self, message):
+        return self.say("GOT IT")
+
     def handle_hello_intent(self, message):
         if message.conf == 1.0:
             #print(message)
             
             if "help" in message.sent:
-                return self.say("How can I assist you?")
+                return self.ask("How can I assist you?", self.handle_help_response)
             else:
                 text = self.getMessageFromDialog("hello.dialog")
                 if (text != "") and (text.lower() != "good night"):

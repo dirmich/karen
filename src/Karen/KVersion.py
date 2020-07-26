@@ -14,7 +14,7 @@ __APP_NAME__="Project Karen: Synthentic Human"      # Application Name
 # Version Info
 __APP_MAJOR__=0
 __APP_MINOR__=4
-__APP_BUILD__=20200720
+__APP_BUILD__=20200726
 
 # Aliases
 name=__APP_NAME__

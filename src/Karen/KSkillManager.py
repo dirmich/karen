@@ -110,7 +110,16 @@ class Skill:
     def __init__(self):
         self._name = "Learned Skill"
         self.brain = None 
+    
+    def ask(self, in_text, in_callback):
         
+        if self.brain is not None:
+            return self.brain.ask(in_text, in_callback)
+        else:
+            logging.debug(self._name + " - BRAIN not referenced")
+
+        return { "error": True, "message": "Error in Ask command" }
+    
     def getMessageFromDialog(self, dialog_file, **args):
         text = ""
         df = os.path.join(os.path.dirname(__file__), "skills", self.__class__.__name__, "vocab", "en_us", dialog_file)
@@ -170,10 +179,10 @@ class Skill:
         
         return True
     
-    def say(self, text):
+    def say(self, in_text):
         
         if self.brain is not None:
-            return self.brain.say(text)
+            return self.brain.say(in_text)
         else:
             logging.debug(self._name + " - BRAIN not referenced")
 
