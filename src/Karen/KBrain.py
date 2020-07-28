@@ -142,9 +142,9 @@ class Brain(TCPServer):
                                 self.saveSpeakerData(utterences)
 
                                 if self._waitAsk and self._waitAsk_callback is not None:
-                                    result = self._waitAsk_callback(payload["data"])
                                     self._waitAsk = None
-                                    self._waitAsk_callback = None 
+                                    result = self._waitAsk_callback(payload["data"])
+                                    #self._waitAsk_callback = None 
                                     
                                 else:
                                     result = self.skill_manager.parseInput(payload["data"])

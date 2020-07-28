@@ -3,7 +3,7 @@ Project Karen: Synthetic Human
 Created on Jul 20, 2020
 
 @author: lnxusr1
-@license: MIT Lincense
+@license: MIT License
 @summary: Basic skill to audibly respond to questions on faces detected.
 
 '''
