@@ -27,12 +27,12 @@ class KnockKnockSkill(Skill):
             return self.say("ha ha ha.")
         
     def handle_knockknock_q1(self, message):
-        return self.ask(str(message) + " who?", self.handle_knockknock_q2)
+        return self.ask(str(message) + " who?", self.handle_knockknock_q2, timeout=10)
 
     def handle_knockknock_intent(self, message):
         print(message)
             
-        return self.ask("Who's there?", self.handle_knockknock_q1)
+        return self.ask("Who's there?", self.handle_knockknock_q1, timeout=10)
         
         #return { "error": True, "message": "Intent not understood" }
     

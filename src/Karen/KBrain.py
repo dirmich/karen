@@ -26,6 +26,8 @@ class Brain(TCPServer):
         
         self._waitAsk = False
         self._waitAsk_callback = None
+        self._waitAsk_timeout = 5
+        self._waitAsk_timestart = 0 
         
         self.hostname = kwargs["ip"]
         self.tcp_port = kwargs["port"]
@@ -141,7 +143,7 @@ class Brain(TCPServer):
                                     utterences.pop(0)
                                 self.saveSpeakerData(utterences)
 
-                                if self._waitAsk and self._waitAsk_callback is not None:
+                                if self._waitAsk and self._waitAsk_callback is not None and (self._waitAsk_timeout == 0 or self._waitAsk_timestart + self._waitAsk_timeout >= time.time()):
                                     self._waitAsk = None
                                     result = self._waitAsk_callback(payload["data"])
                                     #self._waitAsk_callback = None 
@@ -289,7 +291,7 @@ class Brain(TCPServer):
         
         return False        
     
-    def ask(self, in_text, in_callback):
+    def ask(self, in_text, in_callback, timeout=0):
 
         logging.info(self._name + " - Asking: "+in_text)
 
@@ -349,7 +351,9 @@ class Brain(TCPServer):
         if (x_ret["error"] == False):
             self._waitAsk = True
             self._waitAsk_callback = in_callback
-        
+            self._waitAsk_timeout = timeout 
+            self._waitAsk_timestart = time.time()
+            
             return { "error": False, "message": "ASK completed successfully." }
         else:
             return { "error": True, "message": x_ret["message"] }

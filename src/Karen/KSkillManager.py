@@ -65,7 +65,27 @@ class SkillManager:
                     if res["error"] == False:
                         return { "error": False, "message": "Skill completed successfully." }
                 
-                
+            # Some simple responses to important questions
+            elif "who are you" in in_text or "who are u" in in_text:
+                res = self.brain.say("I am a synthetic human.  You may call me Karen.")
+                if res["error"] == False:
+                    return { "error": False, "message": "Skill completed successfully." }
+            elif "how are you" in in_text:
+                res = self.brain.say("I am online and functioning properly.")
+                if res["error"] == False:
+                    return { "error": False, "message": "Skill completed successfully." }
+            elif "you real" in in_text and len(in_text) <= 15:
+                res = self.brain.say("What is real?  If you define real as electrical impulses flowing through your brain then yes, I am real.")
+                if res["error"] == False:
+                    return { "error": False, "message": "Skill completed successfully." }
+            elif "you human" in in_text and len(in_text) <= 17:
+                res = self.brain.say("More or less.  My maker says that I am a synthetic human.")
+                if res["error"] == False:
+                    return { "error": False, "message": "Skill completed successfully." }
+            elif "is your maker" in in_text and len(in_text) <= 20:
+                res = self.brain.say("I was designed by lnx user  one in 2020 during the Covid 19 lockdown.")
+                if res["error"] == False:
+                    return { "error": False, "message": "Skill completed successfully." }
                                         
             print("fallback: " + in_text)
             return { "error": True, "message": "Intent not understood." }
@@ -111,10 +131,10 @@ class Skill:
         self._name = "Learned Skill"
         self.brain = None 
     
-    def ask(self, in_text, in_callback):
+    def ask(self, in_text, in_callback, timeout=0):
         
         if self.brain is not None:
-            return self.brain.ask(in_text, in_callback)
+            return self.brain.ask(in_text, in_callback, timeout=timeout)
         else:
             logging.debug(self._name + " - BRAIN not referenced")
 
