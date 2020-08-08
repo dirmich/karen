@@ -30,7 +30,7 @@ class KnockKnockSkill(Skill):
         return self.ask(str(message) + " who?", self.handle_knockknock_q2, timeout=10)
 
     def handle_knockknock_intent(self, message):
-        print(message)
+        #print(message)
             
         return self.ask("Who's there?", self.handle_knockknock_q1, timeout=10)
         
