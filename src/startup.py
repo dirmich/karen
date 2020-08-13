@@ -4,7 +4,7 @@ Created on July 12, 2020
 
 @author: lnxusr1
 @license: MIT License
-@summary: Speaker Daemon Process
+@summary: Startup Process
 
 '''
 

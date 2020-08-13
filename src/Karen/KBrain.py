@@ -122,6 +122,13 @@ class Brain(TCPServer):
                             x_ret = self.sendCommandToDevice("speaker",{ "command": "STOP_VISUALIZER" })
                             JSON_response(conn, x_ret)
                             return True
+                        elif str(payload["command"]).lower() == "kill_all":
+                            x_ret = self.sendCommandToDevice("speaker",{ "command": "KILL" })
+                            x_ret = self.sendCommandToDevice("listener",{ "command": "KILL" })
+                            x_ret = self.sendCommandToDevice("watcher",{ "command": "KILL" })
+                            JSON_response(conn, { "error": False, "message": "Command completed successfully." })
+                            self.stop()
+                            return True
                         else:
                             JSON_response(conn, { "error": True, "message": "Invalid command." }, http_status_code=500, http_status_message="Internal Server Error")
                             return False
