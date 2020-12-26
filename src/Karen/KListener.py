@@ -1,9 +1,9 @@
 '''
 Project Karen: Synthetic Human
-Created on Jul 12, 2020
+Created on July 12, 2020
 
 @author: lnxusr1
-@license: MIT Lincense
+@license: MIT License
 @summary: Listener Daemon
 
 '''
@@ -449,6 +449,7 @@ class Listener(TCPServer):
     def startListening(self):
         
         if (self._Listener_thread is None or self._Listener_thread.isAlive() == False):
+            logging.info(self._name + " - Starting listener")
             self._Listener_thread = self._read_from_mic()
             return True
         else:
@@ -458,10 +459,11 @@ class Listener(TCPServer):
     def stopListening(self):
         
         self._Listener_running = False
-        
+            
         if (self._Listener_thread is not None and self._Listener_thread.isAlive()):
             self._Listener_thread.join()
             self._Listener = None
+            logging.info(self._name + " - Listener stopped")
             
         return True 
     

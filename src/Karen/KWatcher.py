@@ -1,9 +1,9 @@
 '''
 Project Karen: Synthetic Human
-Created on Jul 12, 2020
+Created on July 12, 2020
 
 @author: lnxusr1
-@license: MIT Lincense
+@license: MIT License
 @summary: Watcher Daemon
 
 '''
@@ -49,6 +49,11 @@ class Watcher(TCPServer):
         # Model for recognizing the objects that were detected.
         # e.g. Who's face it is that we're looking at.
         self.TRAINED_FILE = kwargs["trained"]
+        if self.TRAINED_FILE is None or self.TRAINED_FILE.strip() == "":
+            import tempfile
+            self.TRAINED_FILE = os.path.join(tempfile.gettempdir(), "karen", "faces.yml")
+            
+        os.makedirs(os.path.dirname(self.TRAINED_FILE), exist_ok=True)
         
         # Watcher FPS determines the number of frames per second that we
         # want to process for incoming objects.  Since this is video
@@ -85,6 +90,7 @@ class Watcher(TCPServer):
         self._model = cv2.CascadeClassifier(self.MODEL_FILE);
         
         self._threadPool_watcher = []
+
         
     @threaded
     def _acceptConnection(self, conn, address):
@@ -112,7 +118,7 @@ class Watcher(TCPServer):
                     return True
             
                 elif my_cmd == "start_watcher":
-                    ret_val = self.startWatching()
+                    ret_val = self._startWatching()
                     if (ret_val):
                         JSON_response(conn, { "error": False, "message": "Watcher started." })
                     else:
@@ -122,7 +128,7 @@ class Watcher(TCPServer):
                     return True
                 
                 elif my_cmd == "stop_watcher":
-                    ret_val = self.stopWatching()
+                    ret_val = self._stopWatching()
                     if (ret_val):
                         JSON_response(conn, { "error": False, "message": "Watcher stopped." })
                     else:
@@ -262,6 +268,7 @@ class Watcher(TCPServer):
         # Let's make sure we have a trained data set to work with before we fire up the watcher.
         if self.TRAINED_FILE is None or os.path.exists(self.TRAINED_FILE) == False:
             logging.error(self._name + " - Trained file does not exist.  Please try training with --watcher-exec-train")
+            self.stop()
             return False
         
         # Check if we're already watching and if so then exit.
@@ -336,10 +343,21 @@ class Watcher(TCPServer):
         """Kicks off the main thread runtime for the Daemon.
         
         Will continue running until watcher is stopped or thread fails."""
+        if self.TRAINED_FILE is None or os.path.exists(self.TRAINED_FILE) == False:
+            if self.input_folder is not None and os.path.exists(self.input_folder) == True:
+                logging.info(self._name + " - Trained file not found.  Attempting to train now.")
+                self.train()
+            else:
+                logging.error(self._name + " - Startup failed:  Trained file not found.  Did you already train?")
+                return False
         
         # If we were were not disabled on start then we need to start listening.
         if self.DISABLE_ON_START == False:
-            self._startWatching() # Starts its own thread
+            ret_val = self._startWatching() # Starts its own thread
+            
+            if ret_val == False:
+                return False
+            
         
         # Start up the TCP Server
         super().run()
@@ -430,6 +448,8 @@ class Watcher(TCPServer):
         faceSamples=[]
         ids = []
 
+        model = cv2.CascadeClassifier(self.MODEL_FILE);
+
         # Loop through input images in the folder supplied.
         for imagePath in imagePaths:
             try:
@@ -446,22 +466,22 @@ class Watcher(TCPServer):
                 logging.debug(self._name + " - Training input: " + imagePath)
                 
                 # Let's pull out the faces from the image (may be more than one!)
-                faces = self._model.detectMultiScale(img_numpy)
+                faces = model.detectMultiScale(img_numpy)
             
                 # Let's make sure we only have one image per face
                 if len(faces) > 1:
-                    logging.error(self._name + " - Multiple faces detected in: " + imagePath)
-                else:
-                    # Loop through faces object for detection ... and there should only be 1. 
-                    for (x,y,w,h) in faces:
-                        
-                        # Let's save the results of what we've found so far.
-                        
-                        # Yes, we are cutting out the face from the image and storing in an array.
-                        faceSamples.append(img_numpy[y:y+h,x:x+w]) 
-                        
-                        # Ids go in the ID array.
-                        ids.append(i_id)
+                    logging.warning(self._name + " - Multiple faces detected in: " + imagePath)
+            
+                # Loop through faces object for detection ... and there should only be 1. 
+                for (x,y,w,h) in faces:
+                    
+                    # Let's save the results of what we've found so far.
+                    
+                    # Yes, we are cutting out the face from the image and storing in an array.
+                    faceSamples.append(img_numpy[y:y+h,x:x+w]) 
+                    
+                    # Ids go in the ID array.
+                    ids.append(i_id)
             except:
                 logging.error(self._name + " - Failed to process: " + imagePath)
 

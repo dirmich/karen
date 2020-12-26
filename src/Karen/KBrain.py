@@ -1,9 +1,9 @@
 '''
 Project Karen: Synthetic Human
-Created on Jul 12, 2020
+Created on July 12, 2020
 
 @author: lnxusr1
-@license: MIT Lincense
+@license: MIT License
 @summary: Brain Daemon
 
 '''
@@ -24,6 +24,11 @@ class Brain(TCPServer):
         
         self._name = "BRAIN"
         
+        self._waitAsk = False
+        self._waitAsk_callback = None
+        self._waitAsk_timeout = 5
+        self._waitAsk_timestart = 0 
+        
         self.hostname = kwargs["ip"]
         self.tcp_port = kwargs["port"]
 
@@ -40,7 +45,7 @@ class Brain(TCPServer):
         self.mem_path = kwargs["mem_path"]
         if self.mem_path is None:
             import tempfile
-            self.mem_path = tempfile.gettempdir()
+            self.mem_path = os.path.join(tempfile.gettempdir(), "karen")
         
         os.makedirs(self.mem_path, exist_ok=True)
         
@@ -117,6 +122,13 @@ class Brain(TCPServer):
                             x_ret = self.sendCommandToDevice("speaker",{ "command": "STOP_VISUALIZER" })
                             JSON_response(conn, x_ret)
                             return True
+                        elif str(payload["command"]).lower() == "kill_all":
+                            x_ret = self.sendCommandToDevice("speaker",{ "command": "KILL" })
+                            x_ret = self.sendCommandToDevice("listener",{ "command": "KILL" })
+                            x_ret = self.sendCommandToDevice("watcher",{ "command": "KILL" })
+                            JSON_response(conn, { "error": False, "message": "Command completed successfully." })
+                            self.stop()
+                            return True
                         else:
                             JSON_response(conn, { "error": True, "message": "Invalid command." }, http_status_code=500, http_status_message="Internal Server Error")
                             return False
@@ -138,17 +150,18 @@ class Brain(TCPServer):
                                     utterences.pop(0)
                                 self.saveSpeakerData(utterences)
 
-                                result = self.skill_manager.parseInput(payload["data"])
+                                if self._waitAsk and self._waitAsk_callback is not None and (self._waitAsk_timeout == 0 or self._waitAsk_timestart + self._waitAsk_timeout >= time.time()):
+                                    self._waitAsk = None
+                                    result = self._waitAsk_callback(payload["data"])
+                                    #self._waitAsk_callback = None 
+                                    
+                                else:
+                                    result = self.skill_manager.parseInput(payload["data"])
+                                    
                                 if result["error"] == True:
-                                    if "thanks" in payload["data"] or "thank you" in payload["data"]:
-                                        res = self.say("You're welcome.")
-                                        if res["error"] == False:
-                                            JSON_response(conn, res)
-                                        else:
-                                            JSON_response(conn, res)
-                                    else:
-                                        logging.error(self._name + " - Error in speech parsing: " + str(result["message"]))
-                                        JSON_response(conn, { "error": True, "message": "Error in speech parsing: " + str(result["message"]) })
+                                    logging.error(self._name + " - Error in speech parsing: " + str(result["message"]))
+                                    JSON_response(conn, { "error": True, "message": "Error in speech parsing: " + str(result["message"]) })
+                                    return False
                                 else:
                                     JSON_response(conn, { "error": False, "message": "AUDIO_INPUT received." })
 
@@ -285,11 +298,78 @@ class Brain(TCPServer):
         
         return False        
     
+    def ask(self, in_text, in_callback, timeout=0):
+
+        logging.info(self._name + " - Asking: "+in_text)
+
+        # Synchronous Requests to Start Speech Output
+        x_ret = { "error": True, "message": "Command not completed." }
+
+        try:
+
+            url_prefix = "https://"
+            if self.use_http:
+                url_prefix = "http://"
+
+            devices = self.getDevices()
+
+            dSave = False
+
+            for d in devices:
+                if d["type"] == "listener" and d["status"] == True:
+                    listener_url = url_prefix + d["ip"] + ":" + str(d["port"]) + "/control"
+                    try:
+                        JSON_request(listener_url, { "command": "AUDIO_OUT_START" })
+                    except:
+                        d["status"] = False
+                        dSave = True
+                        pass 
+                    
+            # Send to Primary Speaker
+            speaker_dev = None
+            for d in devices:
+                if d["type"] == "speaker" and d["status"] == True:
+                    speaker_dev = url_prefix + d["ip"] + ":" + str(d["port"]) + "/control"
+                    try:
+                        x_ret = JSON_request(speaker_dev, { "command": "SAY", "data": in_text })
+                    except Exception as e:
+                        x_ret = { "error": True, "message": str(e) }
+                        d["status"] = False
+                        dSave = True
+                        
+        
+            for d in devices:
+                if d["type"] == "listener" and d["status"] == True:
+                    listener_url = url_prefix + d["ip"] + ":" + str(d["port"]) + "/control"
+                    try:
+                        JSON_request(listener_url, { "command": "AUDIO_OUT_END" })
+                    except:
+                        d["status"] = False
+                        dSave = True
+                        pass 
+                    
+            if dSave == True:
+                self.saveDevices(devices)
+            
+        except Exception as e:
+            logging.debug(self._name + " - SAY task error: " + str(e))
+            return { "error": True, "message": str(e) }
+        
+        if (x_ret["error"] == False):
+            self._waitAsk = True
+            self._waitAsk_callback = in_callback
+            self._waitAsk_timeout = timeout 
+            self._waitAsk_timestart = time.time()
+            
+            return { "error": False, "message": "ASK completed successfully." }
+        else:
+            return { "error": True, "message": x_ret["message"] }
+    
     def getDevices(self):
         return self.getFileData("devices.json")
     
     def getFileData(self, file_name):
-        t_file = os.path.join(self.mem_path, self._name + "." + file_name)
+        t_file = os.path.join(self.mem_path, self._name + "." + file_name.lower())
         t = []
         if os.path.exists(t_file):
             with open(t_file, 'r') as fp:
@@ -326,9 +406,9 @@ class Brain(TCPServer):
         return self.saveFileData(watcher_data, "watcher_data.json")
         
 
-    def say(self, text):
+    def say(self, in_text):
 
-        logging.info(self._name + " - Saying: "+text)
+        logging.info(self._name + " - Saying: "+in_text)
 
         # Synchronous Requests to Start Speech Output
         x_ret = { "error": True, "message": "Command not completed." }
@@ -359,7 +439,7 @@ class Brain(TCPServer):
                 if d["type"] == "speaker" and d["status"] == True:
                     speaker_dev = url_prefix + d["ip"] + ":" + str(d["port"]) + "/control"
                     try:
-                        x_ret = JSON_request(speaker_dev, { "command": "SAY", "data": text })
+                        x_ret = JSON_request(speaker_dev, { "command": "SAY", "data": in_text })
                     except Exception as e:
                         x_ret = { "error": True, "message": str(e) }
                         d["status"] = False

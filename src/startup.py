@@ -1,10 +1,10 @@
 '''
 Project Karen: Startup
-Created on Jul 12, 2020
+Created on July 12, 2020
 
 @author: lnxusr1
-@license: MIT Lincense
-@summary: Speaker Daemon Process
+@license: MIT License
+@summary: Startup Process
 
 '''
 
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     brain_group.add_argument('--brain-port', type=int, default=2020, help="Brain's TCP Control Port")
     brain_group.add_argument('--brain-ip', default="0.0.0.0", help="Brain's TCP Control IP Address")
     brain_group.add_argument('--web-folder', default="../webgui", help="Folder for Web Control GUI")
-    brain_group.add_argument('--mem-path', default="/dev/shm/karen", help="Shared Memory Pool")
+    brain_group.add_argument('--mem-path', default=None, help="Shared Memory Pool")
 
     listener_group = parser.add_argument_group('Listener Arguments')
     
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     watcher_group.add_argument('--watcher-port', type=int, default=2021, help="Watcher's TCP Control Port")
     watcher_group.add_argument('--watcher-ip', default="0.0.0.0", help="Watcher's TCP Control IP Address")
     watcher_group.add_argument('--watcher-model', default=None, help="OpenCV2 Model for Face Recognition")
-    watcher_group.add_argument('--trained', default="/tmp/faces.yml", help="Trained faces file")
+    watcher_group.add_argument('--trained', default=None, help="Trained faces file")
     watcher_group.add_argument('--fps', type=int, default=1, help="Number of frames to process per second")
     watcher_group.add_argument('--rotate', default=None, help="Rotate video image stream")
     watcher_group.add_argument('--watcher-device', type=int, default=0, help="Video Device Index")
@@ -210,7 +210,7 @@ if __name__ == "__main__":
     # =============================================
     # Check if we need to train.
     
-    if ARGS.exec_train or os.path.exists(ARGS.trained) == False:
+    if ARGS.exec_train:
         d = Watcher(**watcher_config)
         d.train()
         

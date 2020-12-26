@@ -1,9 +1,9 @@
 '''
 Project Karen: Synthetic Human
-Created on Jul 12, 2020
+Created on July 12, 2020
 
 @author: lnxusr1
-@license: MIT Lincense
+@license: MIT License
 @summary: Speaker Daemon
 
 '''
@@ -147,6 +147,9 @@ class Speaker(TCPServer):
             except:
                 logging.info(self._name + " - Visual failed to start")
                 return False
+
+        else:
+            logging.error(self._name + " - Visualizer not configured")
 
         # This isn't a critical function so we'll pretend like everything is great.
         return True
