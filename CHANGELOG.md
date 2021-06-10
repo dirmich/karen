@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.5.1 - Unreleased]
 
 ### Added
 
@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file.
 - Devices are now containerized in one TCP daemon
 - Device and TCP daemon interactions now operate through callbacks
 - Internal libraries have all changed and are not backwards compatible
+- Moved location of webgui files
 
 ### Removed
 
