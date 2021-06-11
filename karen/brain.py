@@ -115,6 +115,8 @@ class Brain(object):
         self.skill_manager.initialize()
         
         self._callbacks = {}
+        self._actionCommands = []
+        self._dataCommands = []
         
         self._data = {}
         self.clients = []               # { "url": "http://", "active": true }
@@ -147,7 +149,7 @@ class Brain(object):
         self.setHandler("KILL_ALL", handleBrainKillAllCommand)
         #self.setHandler("AUDIO_OUT_START", handleAudioOutCommand)
         #self.setHandler("AUDIO_OUT_END", handleAudioOutCommand)
-        self.setHandler("SAY", handleBrainSayCommand)
+        self.setHandler("SAY", handleBrainSayCommand, enableWebControl=False)
         
         self.setDataHandler("AUDIO_INPUT",handleAudioInputData)
     
@@ -336,12 +338,35 @@ class Brain(object):
             
         return True
     
-    def setHandler(self, handlerType, handlerCallback):
+    def setHandler(self, handlerType, handlerCallback, enableWebControl=True, friendlyName=None):
         self._handlers[handlerType] = handlerCallback
+        if enableWebControl:
+            bFound = False
+            for item in self._actionCommands:
+                if item["type"] == handlerType:
+                    bFound = True
+                    item["friendlyName"] = friendlyName
+                    break
+            
+            if not bFound:
+                self._actionCommands.append({ "type": handlerType, "friendlyName": friendlyName })
+
         return True
     
-    def setDataHandler(self, handlerType, handlerCallback):
+    def setDataHandler(self, handlerType, handlerCallback, enableWebControl=True, friendlyName=None):
         self._dataHandlers[handlerType] = handlerCallback
+
+        if enableWebControl:
+            bFound = False
+            for item in self._dataCommands:
+                if item["type"] == handlerType:
+                    bFound = True
+                    item["friendlyName"] = friendlyName
+                    break
+            
+            if not bFound:
+                self._dataCommands.append({ "type": handlerType, "friendlyName": friendlyName })
+
         return True
     
     def sendRequestToDevices(self, path, payload):
@@ -388,7 +413,18 @@ class Brain(object):
             response_type = "text/html"
             with open(myfile, mode='r') as f:
                 response_body = f.read()
-            
+                
+            actionCommands = []
+            for item in self._actionCommands:
+                itemName = item["friendlyName"] if item["friendlyName"] is not None else item["type"]
+                actionCommands.append("<button rel=\"" + str(item["type"]) + "\" class=\"command\">" + str(itemName) + "</button>")
+
+            #dataCommands = []
+            #for item in self._dataCommands:
+            #    dataCommands.append("<button rel=\"" + str(item["type"]) + "\" class=\"command\">" + str(item["type"]) + "</button>")
+
+            response_body = response_body.replace("__COMMAND_LIST__", "\n".join(actionCommands))                
+            #response_body = response_body.replace("__DATA_LIST__", "\n".join(actionCommands))                
             response_body = response_body.replace("__APP_NAME__", __app_name__).replace("__APP_VERSION__", "v"+__version__)
         else:
             responseCode = "404",

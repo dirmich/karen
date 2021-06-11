@@ -18,6 +18,8 @@ All notable changes to this project will be documented in this file.
 - Device and TCP daemon interactions now operate through callbacks
 - Internal libraries have all changed and are not backwards compatible
 - Moved location of webgui files
+- Updated look-and-feel of web gui
+- Added mobile support for web gui
 
 ### Removed
 
