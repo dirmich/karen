@@ -11,7 +11,8 @@ import logging
 class KnockKnockSkill(Skill):
     def __init__(self):
         self._name = "KnockKnockSkill"
-        logging.debug("SKILL - " + self._name + "loaded successfully.")
+        self.logger = logging.getLogger("SKILL")
+        self.logger.debug(self._name + "loaded successfully.")
     
     def initialize(self):
         self.register_intent_file("knockknock.intent", self.handle_knockknock_intent)

@@ -179,8 +179,7 @@
 		.page_block { display:none; }
 		.page_block.active { display: block; }
 		
-		.box { max-width: 600px; }
-		.box button { 
+		button { 
 			border: 1px solid #bbb8b5;
 			background-color: #555;
 			background: linear-gradient(#fbfafa, #fbfafa, #e8e9e9, #f2f1f0);
@@ -188,16 +187,27 @@
 			width: 175px;
 			height: 50px;
 			line-height: 48px;
-			margin: 6px 10px;
 			border-radius: 4px;
 			font-size: 15px;
 		}
 		
-		.box button:hover {
+		button:hover {
 			background: linear-gradient(#f7f6f6, #f7f6f6, #e4e5e5, #eeedec);
 			color: #111;
 			text-shadow: 1px 1px #ddd;
 			box-shadow: 2px 2px 4px #eee;
+		}
+		
+		button:active {
+			background: linear-gradient(#e7e6e6, #d4d5d5, #dedddc, #dedddc);
+			color: #000;
+			text-shadow: -1px -1px #ddd;
+			box-shadow: -2px -2px 4px #eee;
+		}
+		
+		.box { max-width: 600px; }
+		.box button { 
+			margin: 6px 10px;
 		}
 		
 		.options { margin-top: 10px; border-top: 1px solid #ccc; padding-top: 10px; }
@@ -218,12 +228,37 @@
 			font-size: 14px;
 		}
 		
+		/*input[type="text"] { width: 100%; max-width: 600px; line-height: 44px; height: 44px; padding: 0 10px; box-sizing: border-box; font-size: 15px; margin-bottom: 10px; border-radius: 3px; border: 1px solid #bcbcbc; background-color: #eee; }*/
+		select { width: 100%; max-width: 600px;  height: 32px; line-height: 32px; padding: 0 10px; font-size: 15px;  margin-bottom: 10px; border-radius: 3px; border: 1px solid #bcbcbc; background-color: #eee; }
+		textarea { width: 100%; max-width: 600px; height: 70px; padding: 5px 10px; box-sizing: border-box; font-size: 14px; border-radius: 3px; border: 1px solid #bcbcbc; background-color: #eee; margin-bottom: 10px; }
+		button.send {
+			margin-bottom: 10px;
+		}
+		
+		#bars { position: absolute; right: 20px; height: 42px; padding: 6px 0; width: 20px; display: none; }
+		#bars svg { fill: #fff; }
+		
+		@media only screen and (max-width: 768px) {
+			.page_header { height: 60px; height: 60px; line-height: normal; }
+			.page_header .title { padding-top: 10px; font-size: 18px; }
+			.page_header small { display: block; padding: 5px 0 0 0; font-size: 12px; }
+			#bars { display: block; height: 60px; padding: 16px 0; width: 24px; }
+			.page_sidebar { top: 60px; width: 100%; }
+			.page_sidebar.inactive { display: none; }
+			.page_sidebar .button { width: 100%; }
+			.content_container { padding-top: 60px; margin: 0; }
+			.page_footer { left: 0; }
+		}
+		
 	</style>
 	<script type="text/javascript">
 	$(document).ready(function() { 
 		$('a.button').click(function() {
 			$('.page_block').slideUp('fast');
 			$($(this).prop('rel')).slideDown('fast');
+			$('a.button').removeClass('active');
+			$(this).addClass('active');
+			$('#sidebar').addClass('inactive');
 			return false;
 		});
 		
@@ -249,7 +284,7 @@
 				contentType: "application/json",
 				dataType: "json",
 				beforeSend: function() {
-					$('#command-response pre').text('loading...');
+					$('#command-response pre').text('processing...');
 				},
 				success: function(data) {
 					$('#command-response pre').text(JSON.stringify(data, null, 2));
@@ -272,6 +307,9 @@
 				type: "POST",
 				contentType: "application/json",
 				dataType: "json",
+				beforeSend: function() {
+					$('#devices-response pre').text('loading...');
+				},
 				success: function(data) {
 					$('#devices-response pre').text(JSON.stringify(data["data"], null, 2));
 				},
@@ -279,15 +317,54 @@
 					$('#devices-response pre').text(textStatus);
 				}
 			});
+			
+			return false;
+		});
+		
+		$('#btnSendData').click(function() {
+			myType = $('#dataType').val();
+			myData = $('#dataValue').val();
+			
+			my_cmd_text = JSON.stringify({ type: myType, data: myData });
+			$('#data-request pre').text(JSON.stringify({ type: myType, data: myData }, null, 2));
+
+			$.ajax({
+				url: "/data",
+				data: my_cmd_text,
+				type: "POST",
+				contentType: "application/json",
+				dataType: "json",
+				beforeSend: function() {
+					$('#data-response pre').text('processing...');
+				},
+				success: function(data) {
+					$('#data-response pre').text(JSON.stringify(data, null, 2));
+				},
+				error: function(jqXHR, textStatus) {
+					$('#data-response pre').text(textStatus);
+				}
+			});
+			
+			return false;
+		});
+		
+		$('#bars').click(function() {
+			if ($('#sidebar').hasClass('inactive')) {
+				$('#sidebar').removeClass('inactive');
+			} else {
+				$('#sidebar').addClass('inactive');
+			}
+			return false;
 		});
 	});
 	</script>
 </head>
 <body>
 <div class="page_header">
+	<a href="#" id="bars"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M16 132h416c8.837 0 16-7.163 16-16V76c0-8.837-7.163-16-16-16H16C7.163 60 0 67.163 0 76v40c0 8.837 7.163 16 16 16zm0 160h416c8.837 0 16-7.163 16-16v-40c0-8.837-7.163-16-16-16H16c-8.837 0-16 7.163-16 16v40c0 8.837 7.163 16 16 16zm0 160h416c8.837 0 16-7.163 16-16v-40c0-8.837-7.163-16-16-16H16c-8.837 0-16 7.163-16 16v40c0 8.837 7.163 16 16 16z"/></svg></a>
 	<div class="title">__APP_NAME__<small>[__APP_VERSION__]</small></div>
 </div>
-<div class="page_sidebar">
+<div id="sidebar" class="page_sidebar inactive">
 	<a href="#" class="button active" rel="#commands">
 		Commands
 	</a>
@@ -331,6 +408,30 @@
 	<form id="data" class="page_block">
 		<div class="">
 			<h2>Data</h2>
+			
+			<select id="dataType">
+				__DATA_LIST__
+			</select>
+			<br />
+			<textarea id="dataValue" placeholder="Enter Data"></textarea>
+			<br />
+			<button class="send" id="btnSendData">Send &raquo;</button>
+			
+			<div class="options">
+				<input type="checkbox" class="toggle-target" value="#data-log" id="checkbox2" checked="checked"><label for="checkbox2"> Show Log</label>
+			</div>
+			
+			<div class="log" id="data-log">
+				<div id="data-request" class="request">
+					<h3>Request</h3>
+					<pre></pre>
+				</div>
+				
+				<div id="data-response" class="request">
+					<h3>Output</h3>
+					<pre></pre>
+				</div>
+			</div>
 		</div>
 	</form>
 	

@@ -11,7 +11,8 @@ import logging, time
 class TellDateTimeSkill(Skill):
     def __init__(self):
         self._name = "TellDateTimeSkill"
-        logging.debug("SKILL - " + self._name + "loaded successfully.")
+        self.logger = logging.getLogger("SKILL")
+        self.logger.debug(self._name + "loaded successfully.")
     
     def initialize(self):
         self.register_intent_file("telltime.intent", self.handle_telltime_intent)
@@ -31,14 +32,14 @@ class TellDateTimeSkill(Skill):
              
             return self.say(text)
                     
-        return { "error": True, "message": "Intent not understood" }
+        return False
     
     def handle_telldate_intent(self, message):
         if message.conf == 1.0:
             text = "It is " + time.strftime("%A, %B %d")
             return self.say(text)
         
-        return { "error": False, "message": "OK" }
+        return True
     
     def stop(self):
         return True

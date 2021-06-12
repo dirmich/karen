@@ -394,8 +394,8 @@ class DeviceContainer:
         self._handlers[handlerType] = handlerCallback
         return True
     
-    def callbackHandler(self, type, text, data=None):
-        jsonData = { "type": type, "text": text, "data": data }
+    def callbackHandler(self, type, data):
+        jsonData = { "type": type, "data": data }
         result = self._sendRequest("/data", jsonData)
         return not result["error"]
     

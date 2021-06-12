@@ -11,7 +11,8 @@ import logging
 class HelloSkill(Skill):
     def __init__(self):
         self._name = "HelloSkill"
-        logging.debug("SKILL - " + self._name + "loaded successfully.")
+        self.logger = logging.getLogger("SKILL")
+        self.logger.debug(self._name + "loaded successfully.")
     
     def initialize(self):
         self.register_intent_file("hello.intent", self.handle_hello_intent)
@@ -32,7 +33,7 @@ class HelloSkill(Skill):
                 else:
                     return self.say("Hello")
         
-        return { "error": True, "message": "Intent not understood" }
+        return False
     
     def stop(self):
         return True

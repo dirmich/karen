@@ -19,22 +19,22 @@ from . import __version__, __app_name__
 
 def handleAudioInputData(jsonRequest):
 
-    if "text" not in jsonRequest.payload or jsonRequest.payload["text"] is None:
+    if "data" not in jsonRequest.payload or jsonRequest.payload["data"] is None:
         return jsonRequest.sendResponse(True, "Invalid AUDIO_INPUT received.")
     
-    jsonRequest.container.logger.info("(" + str(jsonRequest.payload["type"]) + ") " + str(jsonRequest.payload["text"]))
-    jsonRequest.container.addData(jsonRequest.payload["type"], jsonRequest.payload["text"])
+    jsonRequest.container.logger.info("(" + str(jsonRequest.payload["type"]) + ") " + str(jsonRequest.payload["data"]))
+    jsonRequest.container.addData(jsonRequest.payload["type"], jsonRequest.payload["data"])
     jsonRequest.sendResponse(message="Data collected successfully.")
     
     # Handle ask function as a drop-out on the audio_input... if it is an inbound function then we go straight back to the skill callout.
     if "ask" in jsonRequest.container._callbacks and jsonRequest.container._callbacks["ask"]["expires"] != 0:
         if jsonRequest.container._callbacks["ask"]["expires"] >= time.time():
             jsonRequest.container._callbacks["ask"]["expires"] = 0
-            jsonRequest.container._callbacks["ask"]["function"](jsonRequest.payload["text"])
+            jsonRequest.container._callbacks["ask"]["function"](jsonRequest.payload["data"])
             return True
     
     # Do something
-    jsonRequest.container.skill_manager.parseInput(str(jsonRequest.payload["text"]))
+    jsonRequest.container.skill_manager.parseInput(str(jsonRequest.payload["data"]))
     
     return True
 
@@ -88,7 +88,7 @@ def handleBrainRelayListenerCommand(jsonRequest):
         
     return jsonRequest.sendResponse(False, "Command completed.") 
 
-def handleBrainSayCommand(jsonRequest):
+def handleBrainSayData(jsonRequest):
     #SAY command is not relayed to the brain.  It must be received by the brain or a speaker instance directly.
     
     if "data" not in jsonRequest.payload or jsonRequest.payload["data"] is None:
@@ -149,10 +149,10 @@ class Brain(object):
         self.setHandler("KILL_ALL", handleBrainKillAllCommand)
         #self.setHandler("AUDIO_OUT_START", handleAudioOutCommand)
         #self.setHandler("AUDIO_OUT_END", handleAudioOutCommand)
-        self.setHandler("SAY", handleBrainSayCommand, enableWebControl=False)
         
+        self.setDataHandler("SAY", handleBrainSayData, friendlyName="SAY SOMETHING...")
         self.setDataHandler("AUDIO_INPUT",handleAudioInputData)
-    
+        
     @threaded
     def _acceptConnection(self, conn, address):
         
@@ -328,11 +328,11 @@ class Brain(object):
         
         return jsonRequest.sendResponse(False, "Registered successfully")
             
-    def addData(self, inType, inText, inData=None):
+    def addData(self, inType, inData):
         if inType is not None and inType not in self._data:
             self._data[inType] = []
             
-        self._data[inType].insert(0, { "text": inText, "data": inData, "time": time.time() } )
+        self._data[inType].insert(0, { "data": inData, "time": time.time() } )
         if len(self._data[inType]) > 50:
             self._data[inType].pop()
             
@@ -419,12 +419,13 @@ class Brain(object):
                 itemName = item["friendlyName"] if item["friendlyName"] is not None else item["type"]
                 actionCommands.append("<button rel=\"" + str(item["type"]) + "\" class=\"command\">" + str(itemName) + "</button>")
 
-            #dataCommands = []
-            #for item in self._dataCommands:
-            #    dataCommands.append("<button rel=\"" + str(item["type"]) + "\" class=\"command\">" + str(item["type"]) + "</button>")
+            dataCommands = []
+            for item in self._dataCommands:
+                itemName = item["friendlyName"] if item["friendlyName"] is not None else item["type"]
+                dataCommands.append("<option value=\"" + str(item["type"]) + "\">" + str(itemName) + "</option>")
 
             response_body = response_body.replace("__COMMAND_LIST__", "\n".join(actionCommands))                
-            #response_body = response_body.replace("__DATA_LIST__", "\n".join(actionCommands))                
+            response_body = response_body.replace("__DATA_LIST__", "\n".join(dataCommands))                
             response_body = response_body.replace("__APP_NAME__", __app_name__).replace("__APP_VERSION__", "v"+__version__)
         else:
             responseCode = "404",

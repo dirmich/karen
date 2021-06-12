@@ -55,33 +55,33 @@ class SkillManager:
             if "thanks" in in_text or "thank you" in in_text:
                 if self.brain is not None:
                     res = self.brain.say("You're welcome.")
-                    if res["error"] == False:
-                        return { "error": False, "message": "Skill completed successfully." }
+                    if res:
+                        return True
                 
             # Some simple responses to important questions
             elif "who are you" in in_text or "who are u" in in_text:
                 res = self.brain.say("I am a synthetic human.  You may call me Karen.")
-                if res["error"] == False:
-                    return { "error": False, "message": "Skill completed successfully." }
+                if res:
+                    return True
             elif "how are you" in in_text:
                 res = self.brain.say("I am online and functioning properly.")
-                if res["error"] == False:
-                    return { "error": False, "message": "Skill completed successfully." }
+                if res:
+                    return True
             elif "you real" in in_text and len(in_text) <= 15:
                 res = self.brain.say("What is real?  If you define real as electrical impulses flowing through your brain then yes, I am real.")
-                if res["error"] == False:
-                    return { "error": False, "message": "Skill completed successfully." }
+                if res:
+                    return True
             elif "you human" in in_text and len(in_text) <= 17:
                 res = self.brain.say("More or less.  My maker says that I am a synthetic human.")
-                if res["error"] == False:
-                    return { "error": False, "message": "Skill completed successfully." }
-            elif "is your maker" in in_text and len(in_text) <= 20:
+                if res:
+                    return True
+            elif ("is your maker" in in_text or "is your father" in in_text) and len(in_text) <= 20:
                 res = self.brain.say("I was designed by lnx user  one in 2020 during the Covid 19 lockdown.")
-                if res["error"] == False:
-                    return { "error": False, "message": "Skill completed successfully." }
+                if res:
+                    return True
                                         
             self.logger.debug("fallback: " + in_text)
-            return { "error": True, "message": "Intent not understood." }
+            return False
 
         try:
             intent = self.intentParser.calc_intent(text)
@@ -96,17 +96,17 @@ class SkillManager:
                             if ret_val["error"] == True:
                                 return audioFallback(text)
                             else:
-                                return { "error": False, "message": "Skill completed successfully." }
+                                return True
                         except:
                             # Should we just assume it completed successfully?
-                            return { "error": False, "message": "Skill completed successfully." }
+                            return True
             else:
                 return audioFallback(text)
         except Exception as e:
             self.logger.debug(str(e))
-            return { "error": True, "message": "Error occurred in processing." }
+            return False
 
-        return { "error": True, "message": "Unable to process input."}
+        return False
     
     def stop(self):
         if (self.skills is not None and len(self.skills) > 0):
@@ -131,7 +131,7 @@ class Skill:
         else:
             self.logger.debug("BRAIN not referenced")
 
-        return { "error": True, "message": "Error in Ask command" }
+        return False
     
     def getMessageFromDialog(self, dialog_file, **args):
         text = ""
@@ -199,7 +199,7 @@ class Skill:
         else:
             self.logger.debug("BRAIN not referenced")
 
-        return { "error": True, "message": "Error in Say command" }
+        return False
 
     def stop(self):
         return True
