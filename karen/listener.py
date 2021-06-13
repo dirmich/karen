@@ -1,3 +1,11 @@
+'''
+Project Karen: Synthetic Human
+Created on July 12, 2020
+@author: lnxusr1
+@license: MIT License
+@summary: Listener function for capturing and converting speech to text
+'''
+
 import os, sys, logging
 import numpy as np
 import pyaudio, queue, webrtcvad, collections
@@ -70,6 +78,7 @@ class Listener():
             speechRatio=0.75,           # Must be between 0 and 1 as a decimal
             speechBufferSize=50,        # Buffer size for speech frames
             speechBufferPadding=350,    # Padding, in milliseconds, of speech frames
+            audioDeviceIndex=None,
             callback=None):             # Callback is a function that accepts ONE positional argument which will contain the text identified
 
         # Local variable instantiation and initialization
@@ -77,14 +86,7 @@ class Listener():
         self.callback = callback
         self.logger = logging.getLogger("LISTENER")
 
-        local_path = os.path.join(os.path.dirname(__file__), "..", "models", "speech")
-        
-        if speechModel is None:
-            # Search for speech model?
-            self.speechModel=os.path.join(local_path, 'deepspeech-0.9.3-models.pbmm')
-        else:
-            self.speechModel=speechModel
-            
+        self.speechModel=speechModel
         self.speechScorer=speechScorer                  
         self.audioChannels=audioChannels                
         self.audioSampleRate=audioSampleRate            
@@ -92,6 +94,42 @@ class Listener():
         self.speechRatio=speechRatio                    
         self.speechBufferSize=speechBufferSize          
         self.speechBufferPadding=speechBufferPadding
+        self.audioDeviceIndex=audioDeviceIndex
+
+        if self.speechModel is None:
+            # Search for speech model?
+            self.logger.info("Speech model not specified.  Attempting to use defaults.")
+            local_path = os.path.join(os.path.dirname(__file__), "..", "models", "speech")
+            files = os.listdir(local_path)
+            files = sorted(files, reverse=True) # Very poor attempt to get the latest version of the model if multiple exist.
+            bFoundPBMM=False 
+            bFoundTFLITE=False
+            for file in files:
+                if not bFoundPBMM:
+                    if file.startswith("deepspeech") and file.endswith("models.pbmm"):
+                        self.speechModel=os.path.abspath(os.path.join(local_path, file))
+                        self.logger.debug("Using speech model from " + str(self.speechModel))
+                        bFoundPBMM = True
+                        
+                if not bFoundPBMM and not bFoundTFLITE:
+                    if file.startswith("deepspeech") and file.endswith("models.tflite"):
+                        self.speechModel=os.path.abspath(os.path.join(local_path, file))
+                        self.logger.debug("Using speech model from " + str(self.speechModel))
+                        bFoundTFLITE = True
+
+                if self.speechScorer is None:
+                    if file.startswith("deepspeech") and file.endswith("models.scorer"):
+                        self.speechScorer=os.path.abspath(os.path.join(local_path, file))
+                        self.logger.debug("Using speech scorer from " + str(self.speechScorer))
+        
+            if bFoundPBMM and bFoundTFLITE:
+                self.logger.warning("Found both PBMM and TFLite deepspeech models.")
+                self.logger.warning("Defaulting to PBMM model which will not work with Raspberry Pi devices.")
+                self.logger.warning("To use with RPi either delete the PBMM model or specify the TFLite model explicitly.")
+                
+        if self.speechModel is None:
+            #FIXME: Should we try to download the models if they don't exist?
+            raise Exception("Invalid speech model.  Unable to start listener.")
         
         self.stream = None
         self.thread = None
@@ -143,23 +181,20 @@ class Listener():
             
         _vad = webrtcvad.Vad(self.vadAggressiveness)
         
-        _audio_device = None 
-        
         ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
         c_error_handler = ERROR_HANDLER_FUNC(py_error_handler)
         asound = cdll.LoadLibrary('libasound.so')
         asound.snd_lib_error_set_handler(c_error_handler)
         
-        # If the audio device is not already initialized then initialize it now        
-        if (_audio_device is None):
-            _audio_device = pyaudio.PyAudio()
+        _audio_device = pyaudio.PyAudio()
         
         # Open a stream on the audio device for reading frames
         self.stream = _audio_device.open(format=pyaudio.paInt16,
             channels=self.audioChannels,
             rate=self.audioSampleRate,
             input=True,
-            frames_per_buffer=int(self.audioSampleRate / float(self.speechBufferSize)) ,
+            frames_per_buffer=int(self.audioSampleRate / float(self.speechBufferSize)),
+            input_device_index=self.audioDeviceIndex,
             stream_callback=proxy_callback)
         
         self.stream.start_stream()                               # Open audio device stream

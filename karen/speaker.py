@@ -1,5 +1,12 @@
-import os, sys, logging
-import time
+'''
+Project Karen: Synthetic Human
+Created on July 12, 2020
+@author: lnxusr1
+@license: MIT License
+@summary: Speaker function translating text to speech and outputting to speakers
+'''
+
+import os, logging
 from .shared import threaded
 import tempfile
 

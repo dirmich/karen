@@ -1,14 +1,18 @@
+'''
+Project Karen: Synthetic Human
+Created on July 12, 2020
+@author: lnxusr1
+@license: MIT License
+@summary: Brain function for data collection and command proliferation
+'''
+
 import logging
 import time
-from datetime import datetime
 import socket
 import threading
 import ssl
-import random
 import json 
 import os
-import urllib3
-import requests
 from urllib.parse import urljoin
 
 from .shared import threaded, sendHTTPResponse, KHTTPRequestHandler, KJSONRequest, sendJSONRequest
@@ -17,92 +21,8 @@ from .skillmanager import SkillManager
 
 from . import __version__, __app_name__
 
-def handleAudioInputData(jsonRequest):
-
-    if "data" not in jsonRequest.payload or jsonRequest.payload["data"] is None:
-        return jsonRequest.sendResponse(True, "Invalid AUDIO_INPUT received.")
-    
-    jsonRequest.container.logger.info("(" + str(jsonRequest.payload["type"]) + ") " + str(jsonRequest.payload["data"]))
-    jsonRequest.container.addData(jsonRequest.payload["type"], jsonRequest.payload["data"])
-    jsonRequest.sendResponse(message="Data collected successfully.")
-    
-    # Handle ask function as a drop-out on the audio_input... if it is an inbound function then we go straight back to the skill callout.
-    if "ask" in jsonRequest.container._callbacks and jsonRequest.container._callbacks["ask"]["expires"] != 0:
-        if jsonRequest.container._callbacks["ask"]["expires"] >= time.time():
-            jsonRequest.container._callbacks["ask"]["expires"] = 0
-            jsonRequest.container._callbacks["ask"]["function"](jsonRequest.payload["data"])
-            return True
-    
-    # Do something
-    jsonRequest.container.skill_manager.parseInput(str(jsonRequest.payload["data"]))
-    
-    return True
-
-def handleBrainKillAllCommand(jsonRequest):
-    
-    jsonRequest.container.logger.debug("KILL_ALL received.")
-    retVal = True
-    for device in jsonRequest.container.clients:
-        if device["active"]:
-            ret, msg = sendJSONRequest(urljoin(device["url"],"control"), { "command": "KILL" })
-            if not ret:
-                retVal = False
-            
-    ret = jsonRequest.sendResponse(False, "All services are shutting down.")
-    if not ret:
-        retVal = False
-        
-    return jsonRequest.container.stop()
-
-def handleBrainKillCommand(jsonRequest):
-    #KILL commands are for a single instance termination.  May be received at any node and will not be relayed to the brain.
-    
-    jsonRequest.container.logger.debug("KILL received.")
-    jsonRequest.sendResponse(False, "Server is shutting down")
-    return jsonRequest.container.stop()
-
-def handleBrainRelayCommand(jsonRequest):
-    my_cmd = jsonRequest.payload["command"]
-    jsonRequest.container.logger.debug(my_cmd + " received.")
-    
-    jsonRequest.sendResponse(False, "Command completed.") 
-    retVal = True
-    for device in jsonRequest.container.clients:
-        ret, msg = sendJSONRequest(urljoin(device["url"],"control"), jsonRequest.payload)
-        if not ret:
-            retVal = False
-        
-    return jsonRequest.sendResponse(False, "Command completed.") 
-
-def handleBrainRelayListenerCommand(jsonRequest):
-    my_cmd = jsonRequest.payload["command"]
-    jsonRequest.container.logger.debug(my_cmd + " received.")
-    
-    jsonRequest.sendResponse(False, "Command completed.") 
-    retVal = True
-    for device in jsonRequest.container.clients:
-        if device["active"] and device["devices"]["listener"] > 0:
-            ret, msg = sendJSONRequest(urljoin(device["url"],"control"), jsonRequest.payload)
-            if not ret:
-                retVal = False
-        
-    return jsonRequest.sendResponse(False, "Command completed.") 
-
-def handleBrainSayData(jsonRequest):
-    #SAY command is not relayed to the brain.  It must be received by the brain or a speaker instance directly.
-    
-    if "data" not in jsonRequest.payload or jsonRequest.payload["data"] is None:
-        jsonRequest.container.logger.error("Invalid payload for SAY command detected")
-        return jsonRequest.sendResponse(True, "Invalid payload for SAY command detected.") 
-    
-
-    if not jsonRequest.container.say(jsonRequest.payload["data"]):
-        jsonRequest.container.logger.error("SAY command failed")
-        jsonRequest.sendResponse(True, "An error occurred")
-    return jsonRequest.sendResponse(False, "Say command completed.") 
-
 class Brain(object):
-    def __init__(self, **kwargs):
+    def __init__(self, tcp_port=8080, hostname="localhost", ssl_cert_file=None, ssl_key_file=None):
 
         self._lock = threading.Lock()   # Lock for daemon processes
         self._socket = None             # Socket object (where the listener lives)
@@ -127,11 +47,13 @@ class Brain(object):
         self.httplogger = logging.getLogger("HTTP")
         
         # TCP Command Interface
-        self.tcp_port = 8080            # TCP Port for listener.
-        self.hostname = "localhost"     # TCP Hostname
+        self.tcp_port = tcp_port if tcp_port is not None else 8080           # TCP Port for listener.
+        self.hostname = hostname if hostname is not None else "localhost"    # TCP Hostname
         self.use_http = True
-        self.keyfile=None
-        self.certfile=None
+        self.keyfile=ssl_cert_file
+        self.certfile=ssl_key_file
+
+        self.use_http = False if self.keyfile is not None and self.certfile is not None else True
         
         self.isOffline = None 
         self.webgui_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "web")
@@ -143,15 +65,13 @@ class Brain(object):
             self.my_url = "https://"
         self.my_url = self.my_url + str(self.hostname) + ":" + str(self.tcp_port)
         
-        self.setHandler("START_LISTENER", handleBrainRelayListenerCommand)
-        self.setHandler("STOP_LISTENER", handleBrainRelayListenerCommand)
-        self.setHandler("KILL", handleBrainKillCommand)
-        self.setHandler("KILL_ALL", handleBrainKillAllCommand)
-        #self.setHandler("AUDIO_OUT_START", handleAudioOutCommand)
-        #self.setHandler("AUDIO_OUT_END", handleAudioOutCommand)
+        #self.setHandler("START_LISTENER", handleBrainRelayListenerCommand)
+        #self.setHandler("STOP_LISTENER", handleBrainRelayListenerCommand)
+        #self.setHandler("KILL", handleBrainKillCommand)
+        #self.setHandler("KILL_ALL", handleBrainKillAllCommand)
         
-        self.setDataHandler("SAY", handleBrainSayData, friendlyName="SAY SOMETHING...")
-        self.setDataHandler("AUDIO_INPUT",handleAudioInputData)
+        #self.setDataHandler("SAY", handleBrainSayData, friendlyName="SAY SOMETHING...")
+        #self.setDataHandler("AUDIO_INPUT",handleAudioInputData)
         
     @threaded
     def _acceptConnection(self, conn, address):
@@ -181,7 +101,7 @@ class Brain(object):
                 return self.processStatusRequest(req)
 
             elif (len(path) == 9 and path == "/register") or (len(path) > 9 and path[:10] == "/register/"):
-                self.registerClient(address, req)
+                return self.registerClient(address, req)
             
             elif (len(path) == 7 and path == "/webgui") or (len(path) > 7 and path[:8] == "/webgui/"):
                 return self.processFileRequest(conn, path, payload)
@@ -196,7 +116,7 @@ class Brain(object):
             
             else:
                 return req.sendResponse(True, "Invalid request", httpStatusCode=404, httpStatusMessage="Not Found")
-        except:
+        except Exception as e:
             req = KJSONRequest(self, conn, None, None)
             return req.sendResponse(True, "Invalid request", httpStatusCode=404, httpStatusMessage="Not Found")
     
@@ -369,7 +289,7 @@ class Brain(object):
 
         return True
     
-    def sendRequestToDevices(self, path, payload):
+    def sendRequestToDevices(self, path, payload, type=None, friendlyName=None):
         ret = True 
         
         for device in self.clients:
@@ -382,9 +302,27 @@ class Brain(object):
             if not active:
                 continue
             
+            if type is not None and (type not in device["devices"] or device["devices"][type]["count"] == 0):
+                continue
+            
+            if friendlyName is not None:
+                if type is not None:
+                    if friendlyName not in device["devices"][type]["names"]:
+                        continue 
+                else:
+                    bFound = False
+                    for devType in device["devices"]:
+                        if friendlyName in device["devices"][devType]["names"]:
+                            bFound = True
+                            break
+                        
+                    if not bFound:
+                        continue
+                    
             tgtPath = urljoin(url, path)
 
-            if not self._sendRequest(path, payload):
+            ret, msg = sendJSONRequest(tgtPath, payload)
+            if not ret:
                 self.logger.error("Request failed to " + tgtPath)
                 self.logger.debug(json.dumps(payload))
                 ret = False 
@@ -442,6 +380,9 @@ class Brain(object):
         
         my_cmd = str(jsonRequest.payload["type"])
         if my_cmd in self._dataHandlers:
+            if self._dataHandlers[my_cmd] is None:
+                return jsonRequest.sendResponse(False, "Complete.")
+
             return self._dataHandlers[my_cmd](jsonRequest)
         else:
             return jsonRequest.sendResponse(True, "Invalid data received.")
@@ -451,6 +392,9 @@ class Brain(object):
     def processCommandRequest(self, jsonRequest):
         my_cmd = str(jsonRequest.payload["command"]).upper().strip()
         if my_cmd in self._handlers:
+            if self._handlers[my_cmd] is None:
+                return jsonRequest.sendResponse(False, "Command complete.")
+
             return self._handlers[my_cmd](jsonRequest)
         else:
             return jsonRequest.sendResponse(True, "Invalid command.")
@@ -465,7 +409,7 @@ class Brain(object):
         speaker = None
         for item in self.clients:
             if "active" in item and item["active"]:
-                if "devices" in item and "speaker" in item["devices"] and item["devices"]["speaker"] >= 0:
+                if "devices" in item and "karen.Speaker" in item["devices"] and item["devices"]["karen.Speaker"]["count"] > 0:
                     speaker = item["url"]
                     break
         
@@ -475,7 +419,7 @@ class Brain(object):
         
         for item in self.clients:
             if "active" in item and item["active"]:
-                if "devices" in item and "listener" in item["devices"] and item["devices"]["listener"] > 0:
+                if "devices" in item and "karen.Listener" in item["devices"] and item["devices"]["karen.Listener"]["count"] > 0:
                     sendJSONRequest(urljoin(item["url"],"control"), { "command": "AUDIO_OUT_START" })
 
         sendJSONRequest(urljoin(speaker,"control"), { "command": "SAY", "data": str(text) })
@@ -483,7 +427,7 @@ class Brain(object):
 
         for item in self.clients:
             if "active" in item and item["active"]:
-                if "devices" in item and "listener" in item["devices"] and item["devices"]["listener"] > 0:
+                if "devices" in item and "karen.Listener" in item["devices"] and item["devices"]["karen.Listener"]["count"] > 0:
                     sendJSONRequest(urljoin(item["url"],"control"), { "command": "AUDIO_OUT_END" })
             
         return True

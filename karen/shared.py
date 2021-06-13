@@ -1,9 +1,20 @@
+'''
+Project Karen: Synthetic Human
+Created on July 12, 2020
+@author: lnxusr1
+@license: MIT License
+@summary: Karen's library of shared functions and classes
+'''
+
 import threading 
 import json
 import urllib3
 import requests
 import time 
 import socket
+import logging 
+import sys
+import traceback
 
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
@@ -57,22 +68,38 @@ def sendJSONRequest(url, payLoad):
 
     #url = 'https://localhost:8031/requests'
     #mydata = {'somekey': 'somevalue'}
+    logger = logging.getLogger("HTTP")
     
-    headers = { "Content-Type": "application/json" }
-    request_body = json.dumps(payLoad)
+    try:
+        headers = { "Content-Type": "application/json" }
+        request_body = json.dumps(payLoad)
+        
+        res = requests.post(url, data=request_body, headers=headers, verify=False)
     
-    res = requests.post(url, data=request_body, headers=headers, verify=False)
+        ret_val = False
+        if res.ok:
+            try:
+                res_obj = json.loads(res.text)
+                if "error" in res_obj and "message" in res_obj:
+                    result = res_obj
+                    ret_val = not result["error"]
+            except:
+                logger.error("Unable to parse response from " + str(url) + "")
+                logger.debug(str(res.text))
+                pass
+        else:
+            logger.error("Request failed for " + str(url) + "")
+            logger.debug(str(res.text))
+    
+        return ret_val, res.text
 
-    ret_val = False
-    if res.ok:
-        try:
-            res_obj = json.loads(res.text)
-            if res_obj["error"] == False:
-                ret_val = True
-        except:
-            ret_val = False
+    except requests.exceptions.ConnectionError:
+        logger.error("Connection Failed: " + url)
+    except:
+        logger.error(str(sys.exc_info()[0]))
+        logger.error(str(traceback.format_exc()))
 
-    return ret_val, res.text
+    return False, "An error occurred in the HTTP request"
 
 def sendHTTPResponse(socketConn, responseType="text/html", responseBody="", httpStatusCode=200, httpStatusMessage="OK"):
     

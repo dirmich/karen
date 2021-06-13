@@ -1,3 +1,11 @@
+'''
+Project Karen: Synthetic Human
+Created on July 12, 2020
+@author: lnxusr1
+@license: MIT License
+@summary: Core Library
+'''
+
 import os, sys
 sys.path.insert(0,os.path.join(os.path.abspath(os.path.dirname(__file__)), "skills"))
 

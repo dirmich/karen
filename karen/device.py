@@ -1,77 +1,23 @@
+'''
+Project Karen: Synthetic Human
+Created on July 12, 2020
+@author: lnxusr1
+@license: MIT License
+@summary: Device Container for assembling input/output devices
+'''
+
 import logging
 import threading 
 import time
 import os
-import sys
-import traceback
 import socket 
 import ssl
-import urllib3
-import requests
 from urllib.parse import urljoin
-import json
 
-from .shared import threaded, KHTTPRequestHandler, KJSONRequest
-from . import __version__, __app_name__
-
-def handleKillCommand(jsonRequest):
-    jsonRequest.container.logger.debug("KILL received.")
-    jsonRequest.sendResponse(False, "Device container is shutting down")
-    return jsonRequest.container.stop()
-
-def handleStartStopListenerCommand(jsonRequest):
-
-    my_cmd = str(jsonRequest.payload["command"]).upper()
-    jsonRequest.container.logger.debug(my_cmd + " received.")
-
-    if "listener" in jsonRequest.container.objects:
-        for item in jsonRequest.container.objects["listener"]:
-            if my_cmd == "START_LISTENER":
-                item.start()
-            elif my_cmd == "STOP_LISTENER":
-                item.stop()
-        
-    return jsonRequest.sendResponse(False, "Command completed.") 
-
-def handleAudioOutCommand(jsonRequest):
-    
-    my_cmd = str(jsonRequest.payload["command"]).upper()
-    jsonRequest.container.logger.debug(my_cmd + " received.")
-
-    if my_cmd == "AUDIO_OUT_START":    
-        if "listener" in jsonRequest.container.objects:
-            for item in jsonRequest.container.objects["listener"]:
-                item.logger.debug("AUDIO_OUT_START")
-                item._isAudioOut = True
-                
-        return jsonRequest.sendResponse(False, "Pausing Listener during speech utterence.")
-    elif my_cmd == "AUDIO_OUT_END":    
-        if "listener" in jsonRequest.container.objects:
-            for item in jsonRequest.container.objects["listener"]:
-                item.logger.debug("AUDIO_OUT_END")
-                item._isAudioOut = False
-                
-        return jsonRequest.sendResponse(False, "Engaging Listener after speech utterence.")
-    else:
-        return jsonRequest.sendResponse(True, "Invalid command data.")
-    
-def handleSayCommand(jsonRequest):
-    #SAY command is not relayed to the brain.  It must be received by the brain or a speaker instance directly.
-    
-    if "data" not in jsonRequest.payload or jsonRequest.payload["data"] is None:
-        jsonRequest.container.logger.error("Invalid payload for SAY command detected")
-        return jsonRequest.sendResponse(True, "Invalid payload for SAY command detected.") 
-    
-    if "speaker" in jsonRequest.container.objects:
-        # First we try to send to active speakers physically connected to the same instance
-        for item in jsonRequest.container.objects["speaker"]:
-            item.say(str(jsonRequest.payload["data"]))
-            return jsonRequest.sendResponse(False, "Say command completed.") 
-
-    return jsonRequest.sendResponse(True, "Speaker not available.") 
+from .shared import threaded, KHTTPRequestHandler, KJSONRequest, sendJSONRequest
 
 class DeviceContainer:
-    def __init__(self, **kwargs):
+    def __init__(self, tcp_port=8081, hostname="localhost", ssl_cert_file=None, ssl_key_file=None, brain_url="http://localhost:8080"):
 
         self._lock = threading.Lock()   # Lock for daemon processes
         self._socket = None             # Socket object (where the listener lives)
@@ -91,13 +37,15 @@ class DeviceContainer:
         self.httplogger = logging.getLogger("HTTP")
         
         # TCP Command Interface
-        self.tcp_port = 8081            # TCP Port for listener.
-        self.hostname = "localhost"     # TCP Hostname
+        self.tcp_port = tcp_port if tcp_port is not None else 8080           # TCP Port for listener.
+        self.hostname = hostname if hostname is not None else "localhost"    # TCP Hostname
         self.use_http = True
-        self.keyfile=None
-        self.certfile=None
+        self.keyfile=ssl_cert_file
+        self.certfile=ssl_key_file
+
+        self.use_http = False if self.keyfile is not None and self.certfile is not None else True
         
-        self.brain_url = "http://localhost:8080"
+        self.brain_url = brain_url
 
         self.isOffline = None 
         self.webgui_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "web")
@@ -109,65 +57,37 @@ class DeviceContainer:
             self.my_url = "https://"
         self.my_url = self.my_url + str(self.hostname) + ":" + str(self.tcp_port)
         
-        self.setHandler("START_LISTENER", handleStartStopListenerCommand)
-        self.setHandler("STOP_LISTENER", handleStartStopListenerCommand)
-        self.setHandler("KILL", handleKillCommand)
-        self.setHandler("AUDIO_OUT_START", handleAudioOutCommand)
-        self.setHandler("AUDIO_OUT_END", handleAudioOutCommand)
-        self.setHandler("SAY", handleSayCommand)
+        #self.setHandler("START_LISTENER", handleStartStopListenerCommand)
+        #self.setHandler("STOP_LISTENER", handleStartStopListenerCommand)
+        #self.setHandler("KILL", handleKillCommand)
+        #self.setHandler("AUDIO_OUT_START", handleAudioOutCommand)
+        #self.setHandler("AUDIO_OUT_END", handleAudioOutCommand)
+        #self.setHandler("SAY", handleSayCommand)
     
     def _sendRequest(self, path, payLoad):
-        
         url = urljoin(self.brain_url, path)
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-    
-        result = { "error": True, "message": None }
-
-        try:    
-            #url = 'https://localhost:8031/requests'
-            #mydata = {'somekey': 'somevalue'}
-            
-            headers = { "Content-Type": "application/json" }
-            request_body = json.dumps(payLoad)
-            
-            res = requests.post(url, data=request_body, headers=headers, verify=False)
-    
-            if res.ok:
-                try:
-                    res_obj = json.loads(res.text)
-                    if "error" in res_obj and "message" in res_obj:
-                        result = res_obj
-                except:
-                    self.httplogger.error("Unable to parse response from " + str(url) + "")
-                    self.httplogger.debug(str(res.text))
-                    pass
-            else:
-                self.httplogger.error("Request failed for " + str(url) + "")
-                self.httplogger.debug(str(res.text))
-        except requests.exceptions.ConnectionError:
-            self.httplogger.error("Connection Failed: " + url)
-        except:
-            self.httplogger.error(str(sys.exc_info()[0]))
-            self.httplogger.error(str(traceback.format_exc()))
-            
-        return result
+        ret, msg = sendJSONRequest(url, payLoad)
+        return ret
     
     def _registerWithBrain(self):
         self.logger.debug("Registration STARTED")
         
         data = {}
         for deviceType in self.objects:
-            data[deviceType] = len(self.objects[deviceType])
+            friendlyNames = []
+            for item in self.objects[deviceType]:
+                if item["friendlyName"] is not None:
+                    friendlyNames.append(item["friendlyName"])
+                    
+            data[deviceType] = { "count": len(self.objects[deviceType]), "names": friendlyNames }
             
         result = self._sendRequest("register", { "port": self.tcp_port, "useHttp": self.use_http, "devices": data })
-        if result["error"] == False:
+        if result:
             self.logger.info("Registration COMPLETE")
         else:
             self.logger.error("Registration FAILED")
-            if result["message"] is not None:
-                self.logger.debug(str(result["message"]))
                 
-        return not result["error"]
+        return result
     
     @threaded
     def _acceptConnection(self, conn, address):
@@ -261,11 +181,16 @@ class DeviceContainer:
         if jsonRequest.path == "/status/devices":
             if "command" in jsonRequest.payload and str(jsonRequest.payload["command"]).lower() == "get-all-current":
                 #FIXME: Object List is not accurate
-                devices = {}
+                data = {}
                 for deviceType in self.objects:
-                    devices[deviceType] = len(self.objects[deviceType])
+                    friendlyNames = []
+                    for item in self.objects[deviceType]:
+                        if item["friendlyName"] is not None:
+                            friendlyNames.append(item["friendlyName"])
+                            
+                    data[deviceType] = { "count": len(self.objects[deviceType]), "names": friendlyNames }
                         
-                return jsonRequest.sendResponse(message="Device list completed.", data=self.objects)
+                return jsonRequest.sendResponse(message="Device list completed.", data=data)
             else:
                 return jsonRequest.sendResponse(True, "Invalid command.", http_status_code=500, http_status_message="Internal Server Error")
         
@@ -292,8 +217,8 @@ class DeviceContainer:
         if autoStartDevices:
             for deviceType in self.objects:
                 for item in self.objects[deviceType]:
-                    if not item._isRunning:
-                        item.start()
+                    if not item["device"]._isRunning:
+                        item["device"].start()
                         
         if not useThreads:
             self._thread.join()
@@ -363,20 +288,20 @@ class DeviceContainer:
         for ldeviceType in self.objects:
             if deviceType is None or deviceType == ldeviceType:
                 for item in self.objects[ldeviceType]:
-                    if item._isRunning:
-                        item.stop()
+                    if item["device"]._isRunning:
+                        item["device"].stop()
             
                 if removeDevices:
                     self.objects[ldeviceType] = []
                 
         return True
     
-    def addDevice(self, deviceType, obj, autoStart=True, autoRegister=True):
-        deviceType = str(deviceType).strip().lower()
+    def addDevice(self, deviceType, obj, friendlyName=None, autoStart=True, autoRegister=True):
+        deviceType = str(deviceType).strip()
         if deviceType not in self.objects:
             self.objects[deviceType] = []
         
-        self.objects[deviceType].append(obj)
+        self.objects[deviceType].append({ "device": obj, "friendlyName": friendlyName })
         self.logger.info("Added " + str(deviceType))
 
         if autoStart:
@@ -397,7 +322,7 @@ class DeviceContainer:
     def callbackHandler(self, type, data):
         jsonData = { "type": type, "data": data }
         result = self._sendRequest("/data", jsonData)
-        return not result["error"]
+        return result
     
 class Device:
     def __init__(self):
