@@ -61,7 +61,12 @@ if __name__ == "__main__":
     # Process configuration file and start engines as appropriate.
     brain = None
     container = None 
-    
+
+    # Location for 3rd party libraries.  We add to system path to make imports automatic.
+    if "settings" in myConfig and "libraryFolder" in myConfig["settings"]:
+        if myConfig["settings"]["libraryFolder"] is not None and os.path.isdir(str(myConfig["settings"]["libraryFolder"])):
+            sys.path.insert(0,os.path.abspath(str(myConfig["settings"]["libraryFolder"])))
+
     if "brain" in myConfig:
         tcp_port=myConfig["brain"]["tcp_port"] if "tcp_port" in myConfig["brain"] and myConfig["brain"]["tcp_port"] is not None else 8080
         hostname=myConfig["brain"]["hostname"] if "hostname" in myConfig["brain"] and myConfig["brain"]["hostname"] is not None else "localhost"
@@ -84,6 +89,8 @@ if __name__ == "__main__":
                     quit(1)
                 
                 friendlyName = ", friendlyName=\"" + str(command["friendlyName"]) + "\"" if "friendlyName" in command and command["friendlyName"] is not None else ""
+
+                #FIXME: Function may not have been imported yet.
                 eval("brain.setHandler(\"" + str(command["type"]) + "\", " + str(command["function"]) + friendlyName + ")")
 
         if "data" in myConfig["brain"] and isinstance(myConfig["brain"]["data"],list):
@@ -93,6 +100,8 @@ if __name__ == "__main__":
                     quit(1)
                 
                 friendlyName = ", friendlyName=\"" + str(command["friendlyName"]) + "\"" if "friendlyName" in command and command["friendlyName"] is not None else ""
+
+                #FIXME: Function may not have been imported yet.
                 eval("brain.setDataHandler(\"" + str(command["type"]) + "\", " + str(command["function"]) + friendlyName + ")")
 
         if "start" not in myConfig["brain"] or myConfig["brain"]["start"]:        
@@ -117,11 +126,8 @@ if __name__ == "__main__":
                     print("Invalid device specified.  No type given.")
                     quit(1)
 
+                #FIXME:  Update imports to only import the classes once.
                 if (not (device["type"]).startswith("karen.") and not device["type"].replace("karen.","").contains(".")):
-                    if "settings" in myConfig and "libraryFolder" in myConfig["settings"]:
-                        if myConfig["settings"]["libraryFolder"] is not None and os.path.isdir(str(myConfig["settings"]["libraryFolder"])):
-                            sys.path.insert(0,os.path.abspath(str(myConfig["settings"]["libraryFolder"])))
-                        
                     importPath = str(device["type"]).split(".")
                     importPath.pop() # remove the last item which shoudl be a class
                     eval("import "+(".").join(importPath))
@@ -140,6 +146,8 @@ if __name__ == "__main__":
                     quit(1)
                 
                 friendlyName = ", friendlyName=\"" + str(command["friendlyName"]) + "\"" if "friendlyName" in command and command["friendlyName"] is not None else ""
+
+                #FIXME: Function may not have been imported yet.
                 eval("container.setHandler(\"" + str(command["type"]) + "\", " + str(command["function"]) + friendlyName + ")")
 
         

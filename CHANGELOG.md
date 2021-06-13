@@ -9,8 +9,11 @@ All notable changes to this project will be documented in this file.
 - Callback handlers for brain for extensible support
 - Callback support for data capture and output devices for extensible support
 - Listener daemon supports user-supplied callbacks for STT delivery
+- Dynamic device loader allow for expansion of new input/output devices
 - Python module setup and egg generation
 - Unit Tests for listener
+- Added mobile support for web gui
+- Added configuration-based startup
 
 ### Changed
 
@@ -19,7 +22,6 @@ All notable changes to this project will be documented in this file.
 - Internal libraries have all changed and are not backwards compatible
 - Moved location of webgui files
 - Updated look-and-feel of web gui
-- Added mobile support for web gui
 
 ### Removed
 
