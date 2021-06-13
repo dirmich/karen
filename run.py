@@ -1,10 +1,23 @@
 import logging 
 import karen
-import karen.handlers 
 import sys
 import os
 import json 
 
+def getImport(libs, val):
+    if val is not None and isinstance(val,str) and val.strip() != "":
+        if "." in val:
+            parts = val.split(".")
+            parts.pop()
+            ret = ".".join(parts)
+            if ret in libs:
+                return None
+
+            libs.append(ret)
+            return ret
+
+    return None
+        
 if __name__ == "__main__":
     
     import argparse
@@ -12,6 +25,7 @@ if __name__ == "__main__":
     #parser.add_argument('--locale', default="en_us", help="Language Locale")
 
     parser.add_argument('-c','--config', required=True, help="Configuration file")
+    parser.add_argument('-v','--version', action="store_true", help="Print Version")
     
     logging_group = parser.add_argument_group('Logging Arguments')
     
@@ -19,6 +33,10 @@ if __name__ == "__main__":
     logging_group.add_argument('--log-file', default=None, help="Redirects all logging messages to the specified file")
     
     ARGS = parser.parse_args()
+    
+    if ARGS.version:
+        print(karen.__app_name__,"v"+karen.__version__)
+        quit()
 
     configFile = os.path.abspath(ARGS.config)
     if not os.path.isfile(configFile):
@@ -31,7 +49,7 @@ if __name__ == "__main__":
     except:
         raise Exception("Configuration file does not to be properly formatted")
         quit(1)
-        
+    
     logging_level = logging.DEBUG
     if str(ARGS.log_level).lower() == "debug":
         logging_level = logging.DEBUG 
@@ -61,97 +79,118 @@ if __name__ == "__main__":
     # Process configuration file and start engines as appropriate.
     brain = None
     container = None 
-
+    importedLibs = ["karen"]
+    skillFolder = None
+    
     # Location for 3rd party libraries.  We add to system path to make imports automatic.
-    if "settings" in myConfig and "libraryFolder" in myConfig["settings"]:
-        if myConfig["settings"]["libraryFolder"] is not None and os.path.isdir(str(myConfig["settings"]["libraryFolder"])):
+    if "settings" in myConfig and "libraryFolder" in myConfig["settings"] and myConfig["settings"]["libraryFolder"] is not None:
+        if os.path.isdir(str(myConfig["settings"]["libraryFolder"])):
             sys.path.insert(0,os.path.abspath(str(myConfig["settings"]["libraryFolder"])))
 
+    if "settings" in myConfig and "skillsFolder" in myConfig["settings"] and myConfig["settings"]["skillsFolder"] is not None:
+        if os.path.isdir(str(myConfig["settings"]["skillsFolder"])):
+            sys.path.insert(0,os.path.abspath(str(myConfig["settings"]["skillsFolder"])))
+            skillFolder = os.path.abspath(str(myConfig["settings"]["skillsFolder"]))
+
+    # Establishing the BRAIN instance
     if "brain" in myConfig:
         tcp_port=myConfig["brain"]["tcp_port"] if "tcp_port" in myConfig["brain"] and myConfig["brain"]["tcp_port"] is not None else 8080
         hostname=myConfig["brain"]["hostname"] if "hostname" in myConfig["brain"] and myConfig["brain"]["hostname"] is not None else "localhost"
         ssl_cert_file=myConfig["brain"]["ssl"]["cert_file"] if "ssl" in myConfig["brain"] and "cert_file" in myConfig["brain"]["ssl"] else None
         ssl_key_file=myConfig["brain"]["ssl"]["key_file"] if "ssl" in myConfig["brain"] and "key_file" in myConfig["brain"]["ssl"] else None
 
+        # A BRAIN segment must always exist because we must create a brain_url
         brain_url = "http" + ("s" if ssl_cert_file is not None and ssl_key_file is not None else "") + "://" + hostname + ":" + str(tcp_port)
 
-        brain = karen.Brain(
-                tcp_port=tcp_port,
-                hostname=hostname,
-                ssl_cert_file=ssl_cert_file,
-                ssl_key_file=ssl_key_file
-            )
-
-        if "commands" in myConfig["brain"] and isinstance(myConfig["brain"]["commands"],list):
-            for command in myConfig["brain"]["commands"]:
-                if "type" not in command or "function" not in command:
-                    print("Invalid handler specified " + str(command))
-                    quit(1)
-                
-                friendlyName = ", friendlyName=\"" + str(command["friendlyName"]) + "\"" if "friendlyName" in command and command["friendlyName"] is not None else ""
-
-                #FIXME: Function may not have been imported yet.
-                eval("brain.setHandler(\"" + str(command["type"]) + "\", " + str(command["function"]) + friendlyName + ")")
-
-        if "data" in myConfig["brain"] and isinstance(myConfig["brain"]["data"],list):
-            for command in myConfig["brain"]["data"]:
-                if "type" not in command or "function" not in command:
-                    print("Invalid handler specified " + str(command))
-                    quit(1)
-                
-                friendlyName = ", friendlyName=\"" + str(command["friendlyName"]) + "\"" if "friendlyName" in command and command["friendlyName"] is not None else ""
-
-                #FIXME: Function may not have been imported yet.
-                eval("brain.setDataHandler(\"" + str(command["type"]) + "\", " + str(command["function"]) + friendlyName + ")")
-
         if "start" not in myConfig["brain"] or myConfig["brain"]["start"]:        
+
+            brain = karen.Brain(
+                    tcp_port=tcp_port,
+                    hostname=hostname,
+                    ssl_cert_file=ssl_cert_file,
+                    ssl_key_file=ssl_key_file,
+                    skill_folder=skillFolder
+                )
+    
+            if "commands" in myConfig["brain"] and isinstance(myConfig["brain"]["commands"],list):
+                for command in myConfig["brain"]["commands"]:
+                    if "type" not in command or "function" not in command:
+                        print("Invalid handler specified " + str(command))
+                        quit(1)
+                    
+                    friendlyName = ", friendlyName=\"" + str(command["friendlyName"]) + "\"" if "friendlyName" in command and command["friendlyName"] is not None else ""
+    
+                    myImport = getImport(importedLibs, command["function"])
+                    if myImport is not None:
+                        exec("import "+str(myImport))
+    
+                    eval("brain.setHandler(\"" + str(command["type"]) + "\", " + str(command["function"]) + friendlyName + ")")
+    
+            if "data" in myConfig["brain"] and isinstance(myConfig["brain"]["data"],list):
+                for command in myConfig["brain"]["data"]:
+                    if "type" not in command or "function" not in command:
+                        print("Invalid handler specified " + str(command))
+                        quit(1)
+                    
+                    friendlyName = ", friendlyName=\"" + str(command["friendlyName"]) + "\"" if "friendlyName" in command and command["friendlyName"] is not None else ""
+    
+                    myImport = getImport(importedLibs, command["function"])
+                    if myImport is not None:
+                        exec("import "+str(myImport))
+    
+                    eval("brain.setDataHandler(\"" + str(command["type"]) + "\", " + str(command["function"]) + friendlyName + ")")
+    
             brain.start()
 
+    # Establishing the DEVICE CONTAINER instance
     if "container" in myConfig:
-        if brain_url is None:
-            raise Exception("Brain URL cannot be determined for device container.")
-            quit(1)
-            
-        container = karen.DeviceContainer(
-                tcp_port=myConfig["container"]["tcp_port"] if "tcp_port" in myConfig["container"] else None,
-                hostname=myConfig["container"]["hostname"] if "hostname" in myConfig["container"] else None,
-                ssl_cert_file=myConfig["container"]["ssl"]["cert_file"] if "ssl" in myConfig["container"] and "cert_file" in myConfig["container"]["ssl"] else None,
-                ssl_key_file=myConfig["container"]["ssl"]["key_file"] if "ssl" in myConfig["container"] and "key_file" in myConfig["container"]["ssl"] else None,
-                brain_url=brain_url
-            )
-        
-        if "devices" in myConfig["container"] and isinstance(myConfig["container"]["devices"],list):
-            for device in myConfig["container"]["devices"]:
-                if "type" not in device or device["type"] is None:
-                    print("Invalid device specified.  No type given.")
-                    quit(1)
 
-                #FIXME:  Update imports to only import the classes once.
-                if (not (device["type"]).startswith("karen.") and not device["type"].replace("karen.","").contains(".")):
-                    importPath = str(device["type"]).split(".")
-                    importPath.pop() # remove the last item which shoudl be a class
-                    eval("import "+(".").join(importPath))
-
-                friendlyName = device["friendlyName"] if "friendlyName" in device else None
-                autoStart = device["autoStart"] if "autoStart" in device else True
-                devParams = device["parameters"] if "parameters" in device and isinstance(device["parameters"], dict) else {}
-                newDevice = eval(str(device["type"]) + "(callback=container.callbackHandler, **devParams)")
-                
-                container.addDevice(device["type"], newDevice, friendlyName=friendlyName, autoStart=autoStart)
-
-        if "commands" in myConfig["container"] and isinstance(myConfig["container"]["commands"],list):
-            for command in myConfig["container"]["commands"]:
-                if "type" not in command or "function" not in command:
-                    print("Invalid handler specified " + str(command))
-                    quit(1)
-                
-                friendlyName = ", friendlyName=\"" + str(command["friendlyName"]) + "\"" if "friendlyName" in command and command["friendlyName"] is not None else ""
-
-                #FIXME: Function may not have been imported yet.
-                eval("container.setHandler(\"" + str(command["type"]) + "\", " + str(command["function"]) + friendlyName + ")")
-
-        
         if "start" not in myConfig["container"] or myConfig["container"]["start"]:        
+
+            if brain_url is None:
+                raise Exception("Brain URL cannot be determined for device container.")
+                quit(1)
+                
+            container = karen.DeviceContainer(
+                    tcp_port=myConfig["container"]["tcp_port"] if "tcp_port" in myConfig["container"] else None,
+                    hostname=myConfig["container"]["hostname"] if "hostname" in myConfig["container"] else None,
+                    ssl_cert_file=myConfig["container"]["ssl"]["cert_file"] if "ssl" in myConfig["container"] and "cert_file" in myConfig["container"]["ssl"] else None,
+                    ssl_key_file=myConfig["container"]["ssl"]["key_file"] if "ssl" in myConfig["container"] and "key_file" in myConfig["container"]["ssl"] else None,
+                    brain_url=brain_url
+                )
+            
+            if "devices" in myConfig["container"] and isinstance(myConfig["container"]["devices"],list):
+                for device in myConfig["container"]["devices"]:
+                    if "type" not in device or device["type"] is None:
+                        print("Invalid device specified.  No type given.")
+                        quit(1)
+    
+                    myImport = getImport(importedLibs, device["type"])
+                    if myImport is not None:
+                        exec("import "+str(myImport))
+    
+                    friendlyName = device["friendlyName"] if "friendlyName" in device else None
+                    autoStart = device["autoStart"] if "autoStart" in device else True
+                    devParams = device["parameters"] if "parameters" in device and isinstance(device["parameters"], dict) else {}
+                    newDevice = eval(str(device["type"]) + "(callback=container.callbackHandler, **devParams)")
+                    
+                    container.addDevice(device["type"], newDevice, friendlyName=friendlyName, autoStart=autoStart)
+    
+            if "commands" in myConfig["container"] and isinstance(myConfig["container"]["commands"],list):
+                for command in myConfig["container"]["commands"]:
+                    if "type" not in command or "function" not in command:
+                        print("Invalid handler specified " + str(command))
+                        quit(1)
+                    
+                    friendlyName = ", friendlyName=\"" + str(command["friendlyName"]) + "\"" if "friendlyName" in command and command["friendlyName"] is not None else ""
+    
+                    myImport = getImport(importedLibs, command["function"])
+                    if myImport is not None:
+                        exec("import "+str(myImport))
+    
+                    eval("container.setHandler(\"" + str(command["type"]) + "\", " + str(command["function"]) + friendlyName + ")")
+    
+            
             container.start()
 
     if brain is not None:

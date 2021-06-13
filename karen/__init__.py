@@ -15,9 +15,9 @@ VERSION = (0, 5, 1)
 __version__ = ".".join([str(x) for x in VERSION])
 __app_name__ = "Project Karen"
 
+# Imports for built-in features
 from .listener import Listener
 from .speaker import Speaker
-#from .engine import Engine
 from .device import DeviceContainer
 from .brain import Brain
 from .skillmanager import Skill

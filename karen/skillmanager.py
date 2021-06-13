@@ -13,9 +13,9 @@ from .shared import dayPart
 class SkillManager:
     """Translates text commands into skill results."""
     
-    def __init__(self, brain_obj=None):
+    def __init__(self, brain_obj=None, skill_folder=None):
         self.logger = logging.getLogger("SKILLMANAGER")
-        self.skill_folder = ""
+        self.skill_folder = skill_folder
         self.brain = brain_obj
         
         self.skills = []
@@ -26,9 +26,11 @@ class SkillManager:
         
         self.intentParser = IntentContainer('/tmp/intent_cache')
 
-        d = os.path.join(os.path.dirname(__file__), "skills")
-        skillModules = [os.path.join(d, o) for o in os.listdir(d) 
-                    if os.path.isdir(os.path.join(d,o))]
+        if self.skill_folder is None:
+            self.skill_folder = os.path.join(os.path.dirname(__file__), "skills")
+            
+        skillModules = [os.path.join(self.skill_folder, o) for o in os.listdir(self.skill_folder) 
+                    if os.path.isdir(os.path.join(self.skill_folder,o))]
         
         for f in skillModules:
             mySkillName = os.path.basename(f)

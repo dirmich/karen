@@ -16,14 +16,31 @@ import os
 from urllib.parse import urljoin
 
 from .shared import threaded, sendHTTPResponse, KHTTPRequestHandler, KJSONRequest, sendJSONRequest
-#from .listener import Listener
 from .skillmanager import SkillManager
-
 from . import __version__, __app_name__
 
 class Brain(object):
-    def __init__(self, tcp_port=8080, hostname="localhost", ssl_cert_file=None, ssl_key_file=None):
-
+    """
+    Karen's input/response module.
+    
+    The Brain leverages a JSON-based TCP server for communication with its input/output devices.
+    The primary purpose of the brain is to accept data and send control commands to the devices to take action.
+    """
+    
+    def __init__(self, tcp_port=8080, hostname="localhost", ssl_cert_file=None, ssl_key_file=None, skill_folder=None):
+        """
+        Brain Server Initialization
+        
+        Args:
+            tcp_port (int): The TCP port on which the brain's TCP server will listen for incoming connections
+            hostname (str): The network hostname or IP address for the TCP server daemon
+            ssl_cert_file (str): The path and file name of the SSL certificate (.crt) for secure communications
+            ssl_key_file (str): The path and file name of the SSL private key (.key or .pem) for secure communications
+            skill_folder (str): The path in which the skill modules are located.
+        
+        Both the ssl_cert_file and ssl_key_file must be present in order for SSL to be leveraged.
+        """
+        
         self._lock = threading.Lock()   # Lock for daemon processes
         self._socket = None             # Socket object (where the listener lives)
         self._thread = None             # Thread object for TCP Server (Should be non-blocking)
@@ -31,17 +48,17 @@ class Brain(object):
         self._isRunning = False         # Flag used to indicate if TCP server should be running
         self._threadPool = []           # List of running threads (for incoming TCP requests)
         
-        self.skill_manager = SkillManager(self)
+        self.skill_manager = SkillManager(self, skill_folder)
         self.skill_manager.initialize()
         
-        self._callbacks = {}
-        self._actionCommands = []
-        self._dataCommands = []
+        self._callbacks = {}            # Internall callback storage.  Current example is "ask" function
+        self._actionCommands = []       # List of the command handler string values for use in the web gui (e.g. "KILL")
+        self._dataCommands = []         # List of the data handler string values for use in the web gui (e.g. "AUDIO_INPUT")
         
-        self._data = {}
-        self.clients = []               # { "url": "http://", "active": true }
-        self._handlers = {}
-        self._dataHandlers = {}
+        self._data = {}                 # General storage object for inbound data (see Brain.AddData())
+        self.clients = []               # Client Devices each in the form of { "url": "http://", "active": true }
+        self._handlers = {}             # Command Handlers by their caller e.g. { "KILL": handler_function }
+        self._dataHandlers = {}         # Data Handlers by their caller e.g. { "AUDIO_INPUT": handler_function }
         
         self.logger = logging.getLogger("BRAIN")
         self.httplogger = logging.getLogger("HTTP")
@@ -59,24 +76,31 @@ class Brain(object):
         self.webgui_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "web")
                         
         self.tcp_clients = 5            # Simultaneous clients.  Max is 5.  This is probably overkill.
+                                        # NOTE:  This does not mean only 5 clients can exist.  This is how many
+                                        #        inbound TCP connections the server will accept at the same time.
+                                        #        A client will not hold open the connection so this should scale
+                                        #        to be quite large before becoming a problem.
         
         self.my_url = "http://"
         if not self.use_http:
             self.my_url = "https://"
         self.my_url = self.my_url + str(self.hostname) + ":" + str(self.tcp_port)
         
-        #self.setHandler("START_LISTENER", handleBrainRelayListenerCommand)
-        #self.setHandler("STOP_LISTENER", handleBrainRelayListenerCommand)
-        #self.setHandler("KILL", handleBrainKillCommand)
-        #self.setHandler("KILL_ALL", handleBrainKillAllCommand)
-        
-        #self.setDataHandler("SAY", handleBrainSayData, friendlyName="SAY SOMETHING...")
-        #self.setDataHandler("AUDIO_INPUT",handleAudioInputData)
-        
     @threaded
     def _acceptConnection(self, conn, address):
+        """
+        Accepts inbound TCP connections, parses request, and calls appropriate handler function
+        
+        Args:
+            conn (socket): The TCP socket for the connection
+            address (tuple):  The originating IP address and port for the incoming request e.g. (192.168.0.139, 59209).
+            
+        Returns:
+            (thread):  The thread for the request's connection
+        """
         
         try:
+            # Parse the inbound request
             r = KHTTPRequestHandler(conn.makefile(mode='b'))
             path = str(r.path).lower()
             if ("?" in path):
@@ -122,6 +146,13 @@ class Brain(object):
     
     @threaded
     def _tcpServer(self):
+        """
+        Internal function that creates the listener socket and hands off incoming connections to other functions.
+        
+        Returns:
+            (thread):  The thread for the TCP Server daemon
+
+        """
         
         self._isRunning = True 
                 
@@ -177,59 +208,23 @@ class Brain(object):
                         # so we put a simple "ignore" here so it doesn't fuss too much.
         
         return True
-    
-    @threaded
-    def _startDeviceChecks(self):
-        
-        if self.brain_url is None:
-            return True
-        
-        checkCounter = 1
-        checkEvery = 5
-        
-        while self._isRunning:
-            time.sleep(1)
-            if checkCounter == checkEvery:
-                checkCounter = 0
-                for device in self.clients:
-                    active = device["active"] if "active" in device else False
-                    url = device["url"] if "url" in device else None
-                    tryStep = int(device["try"]) if "try" in device else 1
-                    
-                    if active and url is not None:
-                        ret, msg = self._sendRequest("status", {})
-                        if not ret:
-                            self.logger.error("Unable to connect to device @ " + str(url))
-                            device["active"] = False
-                            active = False
-                        
-                        if active:
-                            try:
-                                msg = json.loads(msg)
-                                if msg["error"]:
-                                    tryStep = tryStep + 1
-                                    device["try"] = tryStep
-                                    if tryStep <= 1:
-                                        self.logger.warning("(" + str(url) + ") " + str(msg["message"]))
-                                    else:
-                                        self.logger.error("(" + str(url) + ") " + str(msg["message"]))
-                                        device["active"] = False
-                                        active = False
-                            except:
-                                self.logger.error("Unable to parse response from device @ " + str(url))
-                                self.logger.debug(str(msg))
-                                tryStep = tryStep + 1
-                                device["try"] = tryStep
-                                if tryStep > 1:
-                                    device["active"] = False
-                                    active = False
-            
-            checkCounter = checkCounter + 1
             
     def registerClient(self, address, jsonRequest):
+        """
+        Receives inbound registration requests and adds clients to internal list of active clients.
+        
+        Args:
+            address (tuple): The originating IP address and port for the incoming request e.g. (192.168.0.139, 59209).
+            jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+            
+        Returns:
+            (bool):  True on success or False on failure.
+        """
+        
         client_ip = str(address[0])
         client_port = jsonRequest.payload["port"] if "port" in jsonRequest.payload else None
         client_proto = "https://" if "useHttp" in jsonRequest.payload and not jsonRequest.payload["useHttp"] else "http://"
+        
         if client_ip is None or client_port is None:
             jsonRequest.sendResponse(True, "Invalid client address or port detected")
             return False
@@ -249,6 +244,17 @@ class Brain(object):
         return jsonRequest.sendResponse(False, "Registered successfully")
             
     def addData(self, inType, inData):
+        """
+        Routine to add data to the brain.  Stores the most recently added 50 items per type.
+        
+        Args:
+            inType (str): The data type under which to save the data
+            inData (object):  The data in which to be saved.  The specific type (str, dict, list, etc.) is dependent on the type of data being saved and controlled by the caller.
+            
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
+        
         if inType is not None and inType not in self._data:
             self._data[inType] = []
             
@@ -259,6 +265,19 @@ class Brain(object):
         return True
     
     def setHandler(self, handlerType, handlerCallback, enableWebControl=True, friendlyName=None):
+        """
+        Sets the handler to be used for incoming control requests
+        
+        Args:
+            handlerType (str):  The type of incoming control request to handle (e.g. "KILL").
+            handlerCallback (function):  The function to call when the control request matches the handler type
+            enableWebControl (bool):  Indicates if the handler type should be listed in the web gui as a button
+            friendlyName (str):  The user-readable name of the control. (optional)
+            
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
+        
         self._handlers[handlerType] = handlerCallback
         if enableWebControl:
             bFound = False
@@ -274,6 +293,19 @@ class Brain(object):
         return True
     
     def setDataHandler(self, handlerType, handlerCallback, enableWebControl=True, friendlyName=None):
+        """
+        Sets the handler to be used for incoming data requests
+        
+        Args:
+            handlerType (str):  The type of incoming control request to handle (e.g. "AUDIO_INPUT").
+            handlerCallback (function):  The function to call when the control request matches the handler type
+            enableWebControl (bool):  Indicates if the handler type should be listed in the web gui as an option in the drop down
+            friendlyName (str):  The user-readable name of the control. (optional)
+            
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
+
         self._dataHandlers[handlerType] = handlerCallback
 
         if enableWebControl:
@@ -289,7 +321,20 @@ class Brain(object):
 
         return True
     
-    def sendRequestToDevices(self, path, payload, type=None, friendlyName=None):
+    def sendRequestToDevices(self, path, payload, inType=None, friendlyName=None):
+        """
+        Sends a JSON request to one or more client devices.
+        
+        Args:
+            path (str):  relative path to call (e.g. "control" or "data").
+            payload (object):  Object to be converted to JSON and sent in the body of the request
+            inType (str):  The type of device to deliver the request to (e.g. "karen.Listener").  This will limit the request to only clients with the specified type of device attached.  (optional) 
+            friendlyName (str):  The friendly name of the client device (e.g. "living room").  This will limit the request to only clients that a device (of the specified type) with that friendly name.  (optional)
+            
+        Returns:
+            (bool):  True on success or False on failure.
+        """
+        
         ret = True 
         
         for device in self.clients:
@@ -302,12 +347,12 @@ class Brain(object):
             if not active:
                 continue
             
-            if type is not None and (type not in device["devices"] or device["devices"][type]["count"] == 0):
+            if inType is not None and (inType not in device["devices"] or device["devices"][inType]["count"] == 0):
                 continue
             
             if friendlyName is not None:
-                if type is not None:
-                    if friendlyName not in device["devices"][type]["names"]:
+                if inType is not None:
+                    if friendlyName not in device["devices"][inType]["names"]:
                         continue 
                 else:
                     bFound = False
@@ -330,6 +375,16 @@ class Brain(object):
         return ret
     
     def processStatusRequest(self, jsonRequest):
+        """
+        Processes an inbound status request.  Generally returns a list of connected devices and their relative details.
+        
+        Args:
+            jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+            
+        Returns:
+            (bool):  True on success or False on failure.
+        """
+        
         if jsonRequest.path == "/status/devices":
             if "command" in jsonRequest.payload and str(jsonRequest.payload["command"]).lower() == "get-all-current":
                 return jsonRequest.sendResponse(False, "Device list completed.", data=self.clients )
@@ -339,6 +394,18 @@ class Brain(object):
         return jsonRequest.sendResponse(False, "Brain is online.")
         
     def processFileRequest(self, conn, path, payload):
+        """
+        Accepts an inbound request for a file.  Leveraged by the Web GUI to server the HTML pages.
+        
+        Args:
+            conn (socket):  The incoming socket connection for the request
+            path (str):  The path of the incoming request (e.g. "/webgui/index.html").
+            payload (object):  The content body of the request
+            
+        Returns:
+            (bool):  True on success or False on failure.
+        """
+        
         path = path.replace("/../","/").replace("/./","/") # Ugly parsing.  Probably should regex this for validation.
             
         if path == "/webgui" or path == "/webgui/":
@@ -374,6 +441,15 @@ class Brain(object):
         return sendHTTPResponse(conn, responseType=response_type, responseBody=response_body, httpStatusCode=responseCode, httpStatusMessage=responseStatus)
     
     def processDataRequest(self, jsonRequest):
+        """
+        Processes an inbound data request.  Parses the command and calls the respective data handler.
+        
+        Args:
+            jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+            
+        Returns:
+            (bool):  True on success or False on failure.
+        """
 
         if "type" not in jsonRequest.payload or jsonRequest.payload["type"] is None:
             return jsonRequest.sendResponse(True, "Invalid data object.")
@@ -390,6 +466,16 @@ class Brain(object):
         return True
     
     def processCommandRequest(self, jsonRequest):
+        """
+        Processes an inbound data request.  Parses the command and calls the respective command handler.
+        
+        Args:
+            jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+            
+        Returns:
+            (bool):  True on success or False on failure.
+        """
+
         my_cmd = str(jsonRequest.payload["command"]).upper().strip()
         if my_cmd in self._handlers:
             if self._handlers[my_cmd] is None:
@@ -400,12 +486,34 @@ class Brain(object):
             return jsonRequest.sendResponse(True, "Invalid command.")
     
     def ask(self, in_text, in_callback=None, timeout=0):
+        """
+        Method to create a action/response/reaction via voice interactions.
+        
+        Args:
+            in_text (str):  The message to send to the speaker.
+            in_callback (function):  The function to call when a response is received.
+            timeout (int):  Number of seconds to wait on a response
+            
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
+        
         ret = self.say(in_text)
         if in_callback is not None:
             self._callbacks["ask"] = { "function": in_callback, "timeout": timeout, "expires": time.time()+timeout }
         return True 
     
     def say(self, text):
+        """
+        Method to send a message to the speaker to be spoken audibly.
+        
+        Args:
+            text (str):  The message to send to the speaker.
+            
+        Returns:
+            (bool):  True on success or False on failure.
+        """
+        
         speaker = None
         for item in self.clients:
             if "active" in item and item["active"]:
@@ -424,7 +532,6 @@ class Brain(object):
 
         sendJSONRequest(urljoin(speaker,"control"), { "command": "SAY", "data": str(text) })
 
-
         for item in self.clients:
             if "active" in item and item["active"]:
                 if "devices" in item and "karen.Listener" in item["devices"] and item["devices"]["karen.Listener"]["count"] > 0:
@@ -433,6 +540,15 @@ class Brain(object):
         return True
     
     def start(self, useThreads=True):
+        """
+        Starts the brain TCP daemon, optionally using threads.
+        
+        Args:
+            useThreads (bool):  Indicates if the brain should be started on a new thread.
+            
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
 
         if self._isRunning:
             return True 
@@ -449,7 +565,15 @@ class Brain(object):
         return True
 
     def wait(self, seconds=0):
-        """Waits for any active servers to complete before closing"""
+        """
+        Waits for any active servers to complete before closing
+        
+        Args:
+            seconds (int):  Number of seconds to wait before calling the "stop()" function
+            
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
 
         if not self._isRunning:
             return True 
@@ -470,11 +594,15 @@ class Brain(object):
         if self._deviceThread is not None:
             self._deviceThread.join()
         
-        self.stopDevices()
-        
         return True
 
-    def stop(self, stopAllDevices=False):
+    def stop(self):
+        """
+        Stops the brain TCP server daemon.
+            
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
         
         if not self._isRunning:
             return True 
@@ -498,15 +626,7 @@ class Brain(object):
         
         if self._deviceThread is not None:
             self._deviceThread.join()
-            
-        if stopAllDevices:
-            self.stopDevices()
         
         self.logger.info("Stopped")
             
         return True
-    
-    def stopDevices(self):
-        #FIXME: Add logic to kill all devices
-        return True
-    

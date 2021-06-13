@@ -1,6 +1,7 @@
 {
 	"settings": {
-		"libraryFolder": "/home/lnxusr1"
+		"libraryFolder": null,
+		"skillsFolder": null
 	},
 	"container": {
 		"start": true,

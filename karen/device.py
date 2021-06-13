@@ -17,7 +17,27 @@ from urllib.parse import urljoin
 from .shared import threaded, KHTTPRequestHandler, KJSONRequest, sendJSONRequest
 
 class DeviceContainer:
+    """
+    Karen's Client Device Manager.
+    
+    The sole purpose of the device container is to facilitate communication between one or more input/output devices and the brain.
+    The device container allows for multiple client devices to be attached to a single communication vehicle.
+    This minimizes the overhead on the device to send its collected content to the brain.
+    """
+    
     def __init__(self, tcp_port=8081, hostname="localhost", ssl_cert_file=None, ssl_key_file=None, brain_url="http://localhost:8080"):
+        """
+        Device Container Initialization
+        
+        Args:
+            tcp_port (int): The TCP port on which the brain's TCP server will listen for incoming connections
+            hostname (str): The network hostname or IP address for the TCP server daemon
+            ssl_cert_file (str): The path and file name of the SSL certificate (.crt) for secure communications
+            ssl_key_file (str): The path and file name of the SSL private key (.key or .pem) for secure communications
+            brain_url (str):  The URL of the brain device.
+        
+        Both the ssl_cert_file and ssl_key_file must be present in order for SSL to be leveraged.
+        """
 
         self._lock = threading.Lock()   # Lock for daemon processes
         self._socket = None             # Socket object (where the listener lives)
@@ -26,12 +46,9 @@ class DeviceContainer:
         self._isRunning = False         # Flag used to indicate if TCP server should be running
         self._threadPool = []           # List of running threads (for incoming TCP requests)
         
-        self._data = {}
+        self._handlers = {}             # Handlers to be called for incoming command requests (e.g. { "KILL": kill_function }
         
-        self._handlers = {}
-        
-        self.objects = {}
-        self.brain = None
+        self.objects = {}               # Input/Output devices as objects
         
         self.logger = logging.getLogger("CONTAINER")
         self.httplogger = logging.getLogger("HTTP")
@@ -45,31 +62,46 @@ class DeviceContainer:
 
         self.use_http = False if self.keyfile is not None and self.certfile is not None else True
         
-        self.brain_url = brain_url
+        self.brain_url = brain_url      # URL for the brain (REQUIRED)
 
         self.isOffline = None 
         self.webgui_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "web")
                         
         self.tcp_clients = 5            # Simultaneous clients.  Max is 5.  This is probably overkill.
+                                        # NOTE:  This does not mean only 5 clients can exist.  This is how many
+                                        #        inbound TCP connections the server will accept at the same time.
+                                        #        A client will not hold open the connection so this should scale
+                                        #        to be quite large before becoming a problem.
         
         self.my_url = "http://"
         if not self.use_http:
             self.my_url = "https://"
         self.my_url = self.my_url + str(self.hostname) + ":" + str(self.tcp_port)
-        
-        #self.setHandler("START_LISTENER", handleStartStopListenerCommand)
-        #self.setHandler("STOP_LISTENER", handleStartStopListenerCommand)
-        #self.setHandler("KILL", handleKillCommand)
-        #self.setHandler("AUDIO_OUT_START", handleAudioOutCommand)
-        #self.setHandler("AUDIO_OUT_END", handleAudioOutCommand)
-        #self.setHandler("SAY", handleSayCommand)
     
     def _sendRequest(self, path, payLoad):
+        """
+        Sends a request to the brain
+        
+        Args:
+            path (str):  The path of the request (e.g. "control" or "data").
+            payLoad (object):  The object to be converted to JSON and sent in the body of the request.
+            
+        Returns:
+            (bool):  True on success or False on failure.
+        """
+        
         url = urljoin(self.brain_url, path)
         ret, msg = sendJSONRequest(url, payLoad)
         return ret
     
     def _registerWithBrain(self):
+        """
+        Sends a registration request to the brain for this client container indicating what devices it represents.
+            
+        Returns:
+            (bool):  True on success or False on failure.
+        """
+        
         self.logger.debug("Registration STARTED")
         
         data = {}
@@ -91,6 +123,16 @@ class DeviceContainer:
     
     @threaded
     def _acceptConnection(self, conn, address):
+        """
+        Accepts inbound TCP connections, parses request, and calls appropriate handler function
+        
+        Args:
+            conn (socket): The TCP socket for the connection
+            address (tuple):  The originating IP address and port for the incoming request e.g. (192.168.0.139, 59209).
+            
+        Returns:
+            (thread):  The thread for the active request connection
+        """
         
         try:
             r = KHTTPRequestHandler(conn.makefile(mode='b'))
@@ -120,6 +162,12 @@ class DeviceContainer:
     
     @threaded
     def _tcpServer(self):
+        """
+        Internal function that creates the listener socket and hands off incoming connections to other functions.
+            
+        Returns:
+            (thread):  The thread for the container's TCP server
+        """
         
         self._isRunning = True 
                 
@@ -177,7 +225,16 @@ class DeviceContainer:
         return True
     
     def processStatusRequest(self, jsonRequest):
-        # TBD
+        """
+        Processes an inbound status request.  Generally returns a summary of connected devices and friendly names.
+        
+        Args:
+            jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+            
+        Returns:
+            (bool):  True on success or False on failure.
+        """
+        
         if jsonRequest.path == "/status/devices":
             if "command" in jsonRequest.payload and str(jsonRequest.payload["command"]).lower() == "get-all-current":
                 #FIXME: Object List is not accurate
@@ -197,6 +254,16 @@ class DeviceContainer:
         return jsonRequest.sendResponse(message="Device is active.")
 
     def processCommandRequest(self, jsonRequest):
+        """
+        Processes an inbound data request.  Parses the command and calls the respective command handler.
+        
+        Args:
+            jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+            
+        Returns:
+            (bool):  True on success or False on failure.
+        """
+        
         my_cmd = str(jsonRequest.payload["command"]).upper().strip()
         if my_cmd in self._handlers:
             return self._handlers[my_cmd](jsonRequest)
@@ -204,7 +271,18 @@ class DeviceContainer:
             return jsonRequest.sendResponse(True, "Invalid command.")
     
     def start(self, useThreads=True, autoRegister=True, autoStartDevices=False):
-
+        """
+        Starts the client TCP daemon, optionally using threads.
+        
+        Args:
+            useThreads (bool):  Indicates if the brain should be started on a new thread.
+            autoRegister (bool):  Indicates if the client should automatically register with the brain
+            autoStartDevices (bool):  Indicates if this call should also start any stopped or not started input/output devices.
+            
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
+        
         if self._isRunning:
             return True 
 
@@ -227,7 +305,15 @@ class DeviceContainer:
         return True
 
     def wait(self, seconds=0):
-        """Waits for any active servers to complete before closing"""
+        """
+        Waits for any active servers to complete before closing
+        
+        Args:
+            seconds (int):  Number of seconds to wait before calling the "stop()" function
+            
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
 
         if not self._isRunning:
             return True 
@@ -253,6 +339,12 @@ class DeviceContainer:
         return True
 
     def stop(self):
+        """
+        Stops the client TCP server daemon.
+            
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
         
         if not self._isRunning:
             return True 
@@ -284,6 +376,16 @@ class DeviceContainer:
         return True
     
     def stopDevices(self, deviceType=None, removeDevices=False):
+        """
+        Stops all connected input/output devices.
+        
+        Args:
+            deviceType (str):  The type of device to stop (e.g. "karen.Listener"). (optional)
+            removeDevices (bool):  Indicates if the devices should be removed once stopped. (optional)
+            
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
         
         for ldeviceType in self.objects:
             if deviceType is None or deviceType == ldeviceType:
@@ -297,6 +399,20 @@ class DeviceContainer:
         return True
     
     def addDevice(self, deviceType, obj, friendlyName=None, autoStart=True, autoRegister=True):
+        """
+        Adds a new input/output device and optionally starts it and registers it with the brain.
+        
+        Args:
+            deviceType (str):  The type of the device being added (e.g. "karen.Listener").
+            obj (object):  The instantiated class object of the input/output device.
+            friendlyName (str):  The friendly name of the device (e.g. "living room").
+            autoStart (bool):  Indicates if this call should call the start() method on input/output device.
+            autoRegister (bool):  Indicates if the client should automatically register with the brain
+            
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
+        
         deviceType = str(deviceType).strip()
         if deviceType not in self.objects:
             self.objects[deviceType] = []
@@ -316,25 +432,91 @@ class DeviceContainer:
         return True 
     
     def setHandler(self, handlerType, handlerCallback):
+        """
+        Sets the handler to be used for incoming control requests
+        
+        Args:
+            handlerType (str):  The type of incoming control request to handle (e.g. "KILL").
+            handlerCallback (function):  The function to call when the control request matches the handler type
+            
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
+        
         self._handlers[handlerType] = handlerCallback
         return True
     
-    def callbackHandler(self, type, data):
-        jsonData = { "type": type, "data": data }
+    def callbackHandler(self, inType, data):
+        """
+        The target of all input/output devices.  Sends collected data to the brain.  Posts request to "/data".
+        
+        Args:
+            inType (str):  The type of data collected (e.g. "AUDIO_INPUT").
+            data (object):  The object to be converted to JSON and sent to the brain in the body of the message.
+            
+        Returns:
+            (bool):  True on success or False on failure.
+        """
+        
+        jsonData = { "type": inType, "data": data }
         result = self._sendRequest("/data", jsonData)
         return result
     
 class Device:
-    def __init__(self):
+    """
+    EXAMPLE: Input/Output Device
+    
+    This can be inherited by devices and overridden as necessary.
+    """
+    
+    def __init__(self, callback=None):
+        """
+        EXAMPLE: Input/Output Device Initialization
+        
+        Args:
+            callback (function):  The method to call when new data is collected.
+        """
+        
         self.type == "DEVICE_TYPE"
         self._isRunning = False
         pass 
     
-    def start(self):
+    def start(self, useThreads=True):
+        """
+        EXAMPLE: Starts the input/output device
+        
+        Args:
+            useThreads (bool):  Indicates if the brain should be started on a new thread.
+        
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
+
+        self._isRunning = True
         return True 
     
     def wait(self, seconds=0):
+        """
+        EXAMPLE: Waits for specified seconds to complete before closing
+        
+        Args:
+            seconds (int):  Number of seconds to wait before calling the "stop()" function
+            
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
+        
+        #TODO: Wait specified time and then...
+        self.stop()
         return True
     
     def stop(self):
+        """
+        EXAMPLE: Stops the device.
+            
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
+        
+        self._isRunning = False
         return True
