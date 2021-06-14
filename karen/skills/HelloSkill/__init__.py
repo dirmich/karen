@@ -9,20 +9,55 @@ from karen import Skill
 import logging 
 
 class HelloSkill(Skill):
+    """
+    Skill to say "Hello"
+    """
+    
     def __init__(self):
+        """
+        Hello Skill Initialization
+        """
+        
         self._name = "HelloSkill"
         self.logger = logging.getLogger("SKILL")
         self.logger.debug(self._name + "loaded successfully.")
     
     def initialize(self):
+        """
+        Load intent files for Hello Skill
+        
+        Returns:
+            (bool): True on success else raises an exception
+        """
+
         self.register_intent_file("hello.intent", self.handle_hello_intent)
+        return True
         
     def handle_help_response(self, message):
+        """
+        Target callback for helper response
+        
+        Args:
+            message (str): text of response (result of ask call).
+            
+        Returns:
+            (bool): True on success or False on failure
+        """
+        
         return self.say("GOT IT")
 
     def handle_hello_intent(self, message):
+        """
+        Primary function for intent matches.  Called by skill manager.
+        
+        Args:
+            message (str):  text that triggered the intent
+            
+        Returns:
+            (bool): True on success or False on failure
+        """
+        
         if message.conf == 1.0:
-            #print(message)
             
             if "help" in message.sent:
                 return self.ask("How can I assist you?", self.handle_help_response)
@@ -36,7 +71,20 @@ class HelloSkill(Skill):
         return False
     
     def stop(self):
+        """
+        Method to stop any daemons created during startup/initialization for this skill.
+        
+        Returns:
+            (bool):  True on success and False on failure
+        """
         return True
     
 def create_skill():
+    """
+    Method to create the instance of this skill for delivering to the skill manager
+    
+    Returns:
+        (object): HelloSkill instantiated class object
+    """
+    
     return HelloSkill()
