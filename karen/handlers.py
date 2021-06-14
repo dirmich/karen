@@ -9,12 +9,30 @@ Created on July 12, 2020
 import time 
 
 def handleKillCommand(jsonRequest):
-    #KILL commands are for a single instance termination.  May be received at any node and will not be relayed to the brain.
+    """
+    Stops the TCP server and all dependent services
+    
+    Args:
+        jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+        
+    Returns:
+        (bool):  True on success and False on failure.
+    """
+    
     jsonRequest.container.logger.debug("KILL received.")
     jsonRequest.sendResponse(False, "Server is shutting down")
     return jsonRequest.container.stop()
 
 def brain_handleAudioInputData(jsonRequest):
+    """
+    Accepts incoming speech-to-text samples, saves them to the data catalog, and processes to determine appropriate response.
+    
+    Args:
+        jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+        
+    Returns:
+        (bool):  True on success else raises an exception.
+    """
 
     if "data" not in jsonRequest.payload or jsonRequest.payload["data"] is None:
         return jsonRequest.sendResponse(True, "Invalid AUDIO_INPUT received.")
@@ -36,7 +54,16 @@ def brain_handleAudioInputData(jsonRequest):
     return True
 
 def brain_handleKillAllCommand(jsonRequest):
+    """
+    Sends KILL signal to all connected devices and terminates local instance upon completion.
     
+    Args:
+        jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+        
+    Returns:
+        (bool):  True on success and False on failure.
+    """
+
     jsonRequest.container.logger.debug("KILL_ALL received.")
     retVal = jsonRequest.container.sendRequestToDevices("control", { "command": "KILL" })
             
@@ -45,6 +72,16 @@ def brain_handleKillAllCommand(jsonRequest):
     return jsonRequest.container.stop()
 
 def brain_handleRelayCommand(jsonRequest):
+    """
+    Relays a command received from the brain to all connected clients.
+    
+    Args:
+        jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+        
+    Returns:
+        (bool):  True on success and False on failure.
+    """
+
     my_cmd = jsonRequest.payload["command"]
     jsonRequest.container.logger.debug(my_cmd + " received.")
     
@@ -57,6 +94,16 @@ def brain_handleRelayCommand(jsonRequest):
     return jsonRequest.sendResponse(False, "Command completed.")
     
 def brain_handleRelayListenerCommand(jsonRequest):
+    """
+    Relays an inbound request to all karen.Listener devices.
+    
+    Args:
+        jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+        
+    Returns:
+        (bool):  True on success and False on failure.
+    """
+
     my_cmd = jsonRequest.payload["command"]
     jsonRequest.container.logger.debug(my_cmd + " received.")
     
@@ -66,8 +113,16 @@ def brain_handleRelayListenerCommand(jsonRequest):
     return jsonRequest.sendResponse(False, "Command completed.") 
 
 def brain_handleSayData(jsonRequest):
-    #SAY command is not relayed to the brain.  It must be received by the brain or a speaker instance directly.
+    """
+    Accepts incoming data command for speech and calls the brain's say() method.
     
+    Args:
+        jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+        
+    Returns:
+        (bool):  True on success and False on failure.
+    """
+
     if "data" not in jsonRequest.payload or jsonRequest.payload["data"] is None:
         jsonRequest.container.logger.error("Invalid payload for SAY command detected")
         return jsonRequest.sendResponse(True, "Invalid payload for SAY command detected.") 
@@ -79,6 +134,15 @@ def brain_handleSayData(jsonRequest):
     return jsonRequest.sendResponse(False, "Say command completed.") 
 
 def device_handleStartStopListenerCommand(jsonRequest):
+    """
+    Handles an inbound START/STOP method for a listener.  Stops the listening device but not the client container.
+    
+    Args:
+        jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+        
+    Returns:
+        (bool):  True on success and False on failure.
+    """
 
     my_cmd = str(jsonRequest.payload["command"]).upper()
     jsonRequest.container.logger.debug(my_cmd + " received.")
@@ -93,7 +157,16 @@ def device_handleStartStopListenerCommand(jsonRequest):
     return jsonRequest.sendResponse(False, "Command completed.") 
 
 def device_handleAudioOutCommand(jsonRequest):
+    """
+    Disables listening temporarily in order to not capture text going through the speaker.  Expects AUDIO_OUT_START and AUDIO_OUT_END commands.
     
+    Args:
+        jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+        
+    Returns:
+        (bool):  True on success and False on failure.
+    """
+
     my_cmd = str(jsonRequest.payload["command"]).upper()
     jsonRequest.container.logger.debug(my_cmd + " received.")
 
@@ -115,7 +188,15 @@ def device_handleAudioOutCommand(jsonRequest):
         return jsonRequest.sendResponse(True, "Invalid command data.")
     
 def device_handleSayCommand(jsonRequest):
-    #SAY command is not relayed to the brain.  It must be received by the brain or a speaker instance directly.
+    """
+    Accepts the inbound SAY command and calls the say() method on the local device to send data to the speaker.
+    
+    Args:
+        jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+        
+    Returns:
+        (bool):  True on success and False on failure.
+    """
     
     if "data" not in jsonRequest.payload or jsonRequest.payload["data"] is None:
         jsonRequest.container.logger.error("Invalid payload for SAY command detected")

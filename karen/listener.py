@@ -16,7 +16,16 @@ import time
 from .shared import threaded
 
 def py_error_handler(filename, line, function, err, fmt):
-    """Used as the handler for the trapped C module errors"""
+    """
+    Error handler to translate non-critical errors to logging messages.
+    
+    Args:
+        filename (str): Output file name or device (/dev/null).
+        line (int): Line number of error
+        function (str): Function containing
+        err (Exception): Exception raised for error
+        fmt (str): Format of log output
+    """
 
     # Convert the parameters to strings for logging calls
     fmt = fmt.decode("utf-8")
@@ -37,17 +46,28 @@ def py_error_handler(filename, line, function, err, fmt):
     return
 
 class SilenceStream():
-    """Hides C library messages by redirecting to log file"""
+    """
+    Hides C library messages by redirecting to log file
+    """
     
     def __init__(self, stream, log_file=None, file_mode='a'):
-        """Redirect stream to log file"""
+        """
+        Redirect stream to log file
+        
+        Args:
+            stream (stream): Inbound stream containing errors to hide
+            log_file (str): File name or device name for error log
+            file_mode (str): Mode to open log_file
+        """
         
         self.fd_to_silence = stream.fileno() # Store the stream we're referening
         self.log_file = log_file # Store the log file to redirect to
         self.file_mode = file_mode # Append vs. Writex
 
     def __enter__(self):
-        """Perform redirection"""
+        """
+        Starts the stream redirection to the log file
+        """
 
         if (self.log_file is None): 
             return # No log file means we can skip this and let output flow as normal.
@@ -57,7 +77,14 @@ class SilenceStream():
         os.dup2(self.devnull.fileno(), self.fd_to_silence) # Redirect to the new pointer
 
     def __exit__(self, exc_type, exc_value, tb):
-        """Restore to original state before redirection"""
+        """
+        Restore stream back to its original state before the silencer was called.
+        
+        Args:
+            exc_type (obj): Execution type. Not used.
+            exc_value (obj): Execution value. Not used.
+            tb (obj): Traceback. Not used.
+        """
 
         if (self.log_file is None): 
             return  # No log file means we can skip this as nothing needs to change.
@@ -67,6 +94,9 @@ class SilenceStream():
         self.stored_dup = None # Cleanup
 
 class Listener():
+    """
+    Listener device to capture audio from microphone and convert any speech to text and send to callback method.
+    """
     
     def __init__(
             self, 
@@ -80,6 +110,21 @@ class Listener():
             speechBufferPadding=350,    # Padding, in milliseconds, of speech frames
             audioDeviceIndex=None,
             callback=None):             # Callback is a function that accepts ONE positional argument which will contain the text identified
+        """
+        Listener Initialization
+
+        Args:
+            speechModel (str):  Path and filename of Deepspeech Speech Model file.  If not set then listener will do a basic seach for the PBMM or TFLite file.
+            speechScorer (str):  Path and filename of Deepspeech Scorer file.  Okay for this to be None as scorer file is not required.
+            audioChannels (int):  Audio channels for audio source.  VAD requires this to be 1 channel.
+            audioSampleRate (int): Audio sample rate of audio source.  VAD requires this to be 16000.
+            vadAggressiveness (int): Voice Activity Detection (VAD) aggressiveness for filtering noise.  Accepts 1 thru 3.
+            speechRatio (float): Must be between 0 and 1 as a decimal
+            speechBufferSize (int): Buffer size for speech frames
+            speechBufferPadding (int): Padding, in milliseconds, of speech frames
+            audioDeviceIndex (int): Listening device index number.  If not set then will use default audio capture device.
+            callback (function): Callback function for which to send capture text    
+        """
 
         # Local variable instantiation and initialization
         self.type = "LISTENER"
@@ -138,7 +183,15 @@ class Listener():
         
     @threaded
     def _doCallback(self, text):
-        """Calls the specified callback as a thread to keep from blocking audio device listening"""
+        """
+        Calls the specified callback as a thread to keep from blocking audio device listening
+
+        Args:
+            text (str):  Text to send to callback function
+        
+        Returns:
+            (thread):  The thread on which the callback is created to be sent to avoid blocking calls.
+        """
 
         try:
             if self.callback is not None:
@@ -150,7 +203,12 @@ class Listener():
 
     @threaded
     def _readFromMic(self):
-        """Opens audio device for listening and processing speech to text"""
+        """
+        Opens audio device for listening and processing speech to text
+        
+        Returns:
+            (thread):  The thread created for the listener while listening for incoming speech.
+        """
     
         buffer_queue = queue.Queue()    # Buffer queue for incoming frames of audio
         self._isRunning = True   # Reset to True to insure we can successfully start
@@ -303,7 +361,12 @@ class Listener():
         self.logger.debug("Streams stopped")
     
     def stop(self):
-        """Stops the listener and any active audio streams"""
+        """
+        Stops the listener and any active audio streams
+        
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
 
         if not self._isRunning:
             return True 
@@ -317,7 +380,15 @@ class Listener():
         return True
         
     def start(self, useThreads=True):
-        """Starts the listener to listen to the default audio device"""
+        """
+        Starts the listener to listen to the default audio device
+
+        Args:
+            useThreads (bool):  Indicates if the brain should be started on a new thread.
+        
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
         if self._isRunning:
             return True 
         
@@ -328,7 +399,15 @@ class Listener():
         return True
     
     def wait(self, seconds=0):
-        """Waits for any active listeners to complete before closing"""
+        """
+        Waits for any active listeners to complete before closing
+        
+        Args:
+            seconds (int):  Number of seconds to wait before calling the "stop()" function
+            
+        Returns:
+            (bool):  True on success else will raise an exception.
+        """
         
         if not self._isRunning:
             return True 

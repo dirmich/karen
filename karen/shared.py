@@ -21,8 +21,12 @@ from urllib.parse import parse_qs, urlparse
 from cgi import parse_header, parse_multipart
 
 def dayPart():
-    """Returns the part of the day based on the system time
-    based on generally acceptable breakpoints."""
+    """
+    Returns the part of the day based on the system time based on generally acceptable breakpoints.
+    
+    Returns:
+        (str):  The part of the day for the current moment (night, morning, evening, etc.).
+    """
     
     # All we need is the current hour in 24-hr notation as an integer
     h = int(time.strftime("%H"))
@@ -44,7 +48,15 @@ def dayPart():
         return "night"
 
 def threaded(fn):
-    """Thread wrapper shortcut using @threaded prefix"""
+    """
+    Thread wrapper shortcut using @threaded prefix
+    
+    Args:
+        fn (function):  The function to executed on a new thread.
+        
+    Returns:
+        (thread):  New thread for executing function.
+    """
 
     def wrapper(*args, **kwargs):
         thread = threading.Thread(target=fn, args=args, kwargs=kwargs)
@@ -55,6 +67,21 @@ def threaded(fn):
     return wrapper
 
 def sendJSONResponse(socketConn, error=False, message=None, data=None, httpStatusCode=200, httpStatusMessage="OK"):
+    """
+    Sends a JSON package as an HTTP response to an open socket connection.  Sends all data as "application/json".
+    
+    Args:
+        socketConn (socket):  Open TCP socket from inbound HTTP request.
+        error (bool):  Indicator sent on payload to indicate success/failure e.g. { error: False, message: "", data: None }.
+        message (str):  The message portion of the payload to be sent e.g. { error: False, message: "", data: None }.
+        data (str):  The data portion of the payload to be sent e.g. { error: False, message: "", data: None }.
+        httpStatusCode (int):  HTTP status code of response.  Default is 200.
+        httpStatusMessage (str):  HTTP status response of response.  Default is "OK".
+
+    Returns:
+        (bool): True on success and False on failure.
+    """
+    
     payload = {}
     payload["error"] = error
     payload["message"] = message 
@@ -64,6 +91,17 @@ def sendJSONResponse(socketConn, error=False, message=None, data=None, httpStatu
     return sendHTTPResponse(socketConn, responseType="application/json", responseBody=json.dumps(payload), httpStatusCode=httpStatusCode, httpStatusMessage=httpStatusMessage)
 
 def sendJSONRequest(url, payLoad):
+    """
+    Sends a JSON request to a specified URL using the POST method.
+    
+    Args:
+        url (str):  URL for which to delivery the POST message.
+        payLoad (object):  Object to be converted to JSON format and sent as the body of the message.
+        
+    Returns:
+        (bool, str):  Returns a tuple as (bool, str) indicating if the message was successful or failed and any related message.
+    """
+    
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     #url = 'https://localhost:8031/requests'
@@ -102,6 +140,19 @@ def sendJSONRequest(url, payLoad):
     return False, "An error occurred in the HTTP request"
 
 def sendHTTPResponse(socketConn, responseType="text/html", responseBody="", httpStatusCode=200, httpStatusMessage="OK"):
+    """
+    Sends a HTTP response to an open socket connection.
+    
+    Args:
+        socketConn (socket):  Open TCP socket from inbound HTTP request.
+        responseType (str):  The MIME type of the response message.
+        responseBody (str):  The body of the response message.
+        httpStatusCode (int):  HTTP status code of response.  Default is 200.
+        httpStatusMessage (str):  HTTP status response of response.  Default is "OK".
+
+    Returns:
+        (bool): True on success and False on failure.
+    """
     
     ret = True
     try:
@@ -122,7 +173,18 @@ def sendHTTPResponse(socketConn, responseType="text/html", responseBody="", http
     return ret
 
 class KHTTPRequestHandler(BaseHTTPRequestHandler):
+    """
+    Class to parse an HTTP request into its parts for GET and POST variables, paths, etc. and can handle multipart/form-data requests.
+    """
+    
     def __init__(self, request_text):
+        """
+        Request Handler Initialization
+        
+        Args:
+            request_text (str):  The full RFC-compliant HTTP request.
+        """
+        
         self.rfile = request_text
         self.raw_requestline = self.rfile.readline()
         self.error_code = self.error_message = None
@@ -130,16 +192,36 @@ class KHTTPRequestHandler(BaseHTTPRequestHandler):
         self.json_body = None
         
     def send_error(self, code, message):
+        """
+        Sets the error code and message for errors.
+        
+        Args:
+            code (int):  Error code for message.
+            message (str):  Message text for error
+        """
+        
         self.error_code = code
         self.error_message = message
     
     def parse_GET(self):
+        """
+        Parses the variables from the query string of the HTTP message.
+        
+        Returns:
+            (dict): name/value pairs representing the query string values
+        """
         
         getvars = parse_qs(urlparse(self.path).query)
         
         return getvars
         
     def parse_POST(self):
+        """
+        Parses the variables from the body of the HTTP message.
+        
+        Returns:
+            (dict): name/value pairs representing the POST values
+        """
         
         postvars = {}
         
@@ -165,12 +247,40 @@ class KHTTPRequestHandler(BaseHTTPRequestHandler):
         return postvars
     
 class KJSONRequest:
+    """
+    Helper class for storing the portions of an inbound JSON request.
+    """
+    
     def __init__(self, inContainer, inSocket, inPath, inPayload):
+        """
+        JSON Request Initialization
+        
+        Args:
+            inContainer (object):  The containing object on which the request was received such as the Brain or DeviceContainer.
+            inSocket (socket): The client socket on which to send any appropriate responses.
+            inPath (str): The relative path of the request (e.g. "control").
+            inPayload (object): The JSON-parsed payload to store for referencing
+        """
+        
         self.container = inContainer
         self.conn = inSocket
         self.path = inPath
         self.payload = inPayload
         
     def sendResponse(self, error=False, message="", data=None, httpStatusCode=200, httpStatusMessage="OK"):
+        """
+        Sends an HTTP response to the requesting client to close the connection.
+        
+        Args:
+            error (bool):  Indicator sent on payload to indicate success/failure e.g. { error: False, message: "", data: None }.
+            message (str):  The message portion of the payload to be sent e.g. { error: False, message: "", data: None }.
+            data (str):  The data portion of the payload to be sent e.g. { error: False, message: "", data: None }.
+            httpStatusCode (int):  HTTP status code of response.  Default is 200.
+            httpStatusMessage (str):  HTTP status response of response.  Default is "OK".
+            
+        Returns:
+            (bool):  True on success and False on failure.
+        """
+        
         ret = sendJSONResponse(socketConn=self.conn, error=error, message=message, data=data, httpStatusCode=httpStatusCode, httpStatusMessage=httpStatusMessage)
         return ret
