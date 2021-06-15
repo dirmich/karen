@@ -27,9 +27,9 @@ nav:
       - KnockKnockSkill: 'karen.skills.knockknockskill.md'
       - TellDateTimeSkill: 'karen.skills.telldatetimeskill.md'
     - Links:
-      - '@ Code': 'https://github.com/lnxusr1/karen'
-      - '@ Community': 'https://github.com/lnxusr1/karen/discussions'
-      - '@ Bugs & Issues': 'https://github.com/lnxusr1/karen/issues'
+      - '@ Code': 'https://projectkaren.ai/code'
+      - '@ Community': 'https://projectkaren.ai/discussion'
+      - '@ Bugs & Issues': 'https://projectkaren.ai/issues'
       - '@ ProjectKaren.Ai': 'https://projectkaren.ai'
 
 plugins:

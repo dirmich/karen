@@ -90,5 +90,5 @@ I'm not sure where we will end up but the goals for this project are pretty simp
 3. Must be fun (because the moment it becomes "work" I'm sure we'll all lose interest)
 
 ## Help &amp; Support
-Installation instructions and documentation is available at https://projectkaren.ai
+Installation instructions and documentation is available at [https://projectkaren.ai](https://projectkaren.ai)
 
