@@ -2,6 +2,10 @@ site_name: ProjectKaren.Ai
 site_url: https://projectkaren.ai/
 repo_url: https://github.com/lnxusr1/karen/
 
+theme: 
+    name: readthedocs
+    highlightjs: true
+
 nav:
     - Introduction: 'index.md'
     - Installation:
