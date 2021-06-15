@@ -1,4 +1,4 @@
-site_name: ProjectKaren.Ai
+site_name: ProjectKaren.Ai Docs
 site_url: https://projectkaren.ai/
 repo_url: https://github.com/lnxusr1/karen/
 
@@ -26,7 +26,11 @@ nav:
       - HelloSkill: 'karen.skills.helloskill.md'
       - KnockKnockSkill: 'karen.skills.knockknockskill.md'
       - TellDateTimeSkill: 'karen.skills.telldatetimeskill.md'
-    - '@Bugs': 'https://github.com/lnxusr1/karen/issues'
+    - Links:
+      - '@ Code': 'https://github.com/lnxusr1/karen'
+      - '@ Community': 'https://github.com/lnxusr1/karen/discussions'
+      - '@ Bugs & Issues': 'https://github.com/lnxusr1/karen/issues'
+      - '@ ProjectKaren.Ai': 'https://projectkaren.ai'
 
 plugins:
 - search
