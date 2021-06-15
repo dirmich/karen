@@ -4,7 +4,7 @@ This project is dedicated to building a "Synthetic Human" which is called Karen 
 ## Installation
 You will likely need a few extra packages and libraries to run Karen's core routines.  The details on all of this is available on our installation page at the link below.
 
-[https://project-karen.readthedocs.io/](https://project-karen.readthedocs.io/)
+[https://docs.projectkaren.ai/](https://docs.projectkaren.ai/)
 
 ### OS generation-specific libraries
 
