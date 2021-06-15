@@ -1,11 +1,3 @@
-'''
-Project Karen: Synthetic Human
-Created on July 12, 2020
-@author: lnxusr1
-@license: MIT License
-@summary: Listener function for capturing and converting speech to text
-'''
-
 import os, sys, logging
 import numpy as np
 import pyaudio, queue, webrtcvad, collections

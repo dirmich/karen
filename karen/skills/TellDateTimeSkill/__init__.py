@@ -1,10 +1,3 @@
-'''
-Project Karen: Synthetic Human
-Created on Jul 20, 2020
-@author: lnxusr1
-@license: MIT License
-@summary: Basic skill to respond audibly to questions about date and time
-'''
 from karen import Skill, dayPart
 import logging, time
 

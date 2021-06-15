@@ -1,11 +1,3 @@
-'''
-Project Karen: Synthetic Human
-Created on July 12, 2020
-@author: lnxusr1
-@license: MIT License
-@summary: Brain function for data collection and command proliferation
-'''
-
 import logging
 import time
 import socket
@@ -116,19 +108,19 @@ class Brain(object):
             
             req = KJSONRequest(self, conn, path, payload)
             if (len(path) == 8 and path == "/control") or (len(path) > 8 and path[:9] == "/control/"):
-                return self.processCommandRequest(req)
+                return self._processCommandRequest(req)
             
             elif (len(path) == 5 and path == "/data") or (len(path) > 5 and path[:6] == "/data/"):
-                return self.processDataRequest(req)
+                return self._processDataRequest(req)
             
             elif (len(path) == 7 and path == "/status") or (len(path) > 7 and path[:8] == "/status/"):
-                return self.processStatusRequest(req)
+                return self._processStatusRequest(req)
 
             elif (len(path) == 9 and path == "/register") or (len(path) > 9 and path[:10] == "/register/"):
-                return self.registerClient(address, req)
+                return self._registerClient(address, req)
             
             elif (len(path) == 7 and path == "/webgui") or (len(path) > 7 and path[:8] == "/webgui/"):
-                return self.processFileRequest(conn, path, payload)
+                return self._processFileRequest(conn, path, payload)
             
             elif path == "/favicon.ico" or path == "/webgui/favicon.ico":
                 response_type = "image/svg+xml"
@@ -209,7 +201,7 @@ class Brain(object):
         
         return True
             
-    def registerClient(self, address, jsonRequest):
+    def _registerClient(self, address, jsonRequest):
         """
         Receives inbound registration requests and adds clients to internal list of active clients.
         
@@ -374,7 +366,7 @@ class Brain(object):
         
         return ret
     
-    def processStatusRequest(self, jsonRequest):
+    def _processStatusRequest(self, jsonRequest):
         """
         Processes an inbound status request.  Generally returns a list of connected devices and their relative details.
         
@@ -393,7 +385,7 @@ class Brain(object):
         
         return jsonRequest.sendResponse(False, "Brain is online.")
         
-    def processFileRequest(self, conn, path, payload):
+    def _processFileRequest(self, conn, path, payload):
         """
         Accepts an inbound request for a file.  Leveraged by the Web GUI to server the HTML pages.
         
@@ -440,7 +432,7 @@ class Brain(object):
     
         return sendHTTPResponse(conn, responseType=response_type, responseBody=response_body, httpStatusCode=responseCode, httpStatusMessage=responseStatus)
     
-    def processDataRequest(self, jsonRequest):
+    def _processDataRequest(self, jsonRequest):
         """
         Processes an inbound data request.  Parses the command and calls the respective data handler.
         
@@ -465,7 +457,7 @@ class Brain(object):
 
         return True
     
-    def processCommandRequest(self, jsonRequest):
+    def _processCommandRequest(self, jsonRequest):
         """
         Processes an inbound data request.  Parses the command and calls the respective command handler.
         

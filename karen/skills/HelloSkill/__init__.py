@@ -1,10 +1,3 @@
-'''
-Project Karen: Synthetic Human
-Created on Jul 12, 2020
-@author: lnxusr1
-@license: MIT License
-@summary: Basic skill to respond to greetings like "Hello"
-'''
 from karen import Skill
 import logging 
 

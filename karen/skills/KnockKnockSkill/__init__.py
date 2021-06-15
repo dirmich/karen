@@ -1,10 +1,3 @@
-'''
-Project Karen: Synthetic Human
-Created on Jul 27, 2020
-@author: lnxusr1
-@license: MIT License
-@summary: Knock Knock joke skill.
-'''
 from karen import Skill 
 import logging 
 

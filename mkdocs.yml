@@ -1,0 +1,32 @@
+site_name: ProjectKaren.Ai
+site_url: https://projectkaren.ai/
+repo_url: https://github.com/lnxusr1/karen/
+
+theme:
+  name: material
+
+nav:
+    - Introduction: 'index.md'
+    - Installation:
+      - Basic Install: 'installation.basic.md'
+      - Audio/Video Extras: 'installation.audio.md'
+      - Raspberry Pi Notes: 'installation.raspberrypi.md'
+    - Devices:
+      - karen.Brain: 'karen.brain.md'
+      - karen.Listener: 'karen.listener.md'
+      - karen.Speaker: 'karen.speaker.md'
+      - karen.DeviceContainer: 'karen.device.md'
+    - Functions:
+      - Skill Manager: 'karen.skillmanager.md'
+      - Shared Library: 'karen.shared.md'
+    - Handlers: 'karen.handlers.md'
+    - Skills:
+      - 'Template: Skill': 'karen.skill.md'
+      - HelloSkill: 'karen.skills.helloskill.md'
+      - KnockKnockSkill: 'karen.skills.knockknockskill.md'
+      - TellDateTimeSkill: 'karen.skills.telldatetimeskill.md'
+    - '@Bugs': 'https://github.com/lnxusr1/karen/issues'
+
+plugins:
+- search
+- mkdocstrings

@@ -1,10 +1,6 @@
-'''
-Project Karen: Synthetic Human
-Created on July 12, 2020
-@author: lnxusr1
-@license: MIT License
-@summary: Handler routines for brain and devices
-'''
+"""
+General handlers for TCP requests between device containers and the Brain.
+"""
 
 import time 
 

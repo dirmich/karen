@@ -20,5 +20,5 @@ from .listener import Listener
 from .speaker import Speaker
 from .device import DeviceContainer
 from .brain import Brain
-from .skillmanager import Skill
+from .skillmanager import Skill, SkillManager
 from .shared import dayPart

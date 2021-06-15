@@ -1,11 +1,3 @@
-'''
-Project Karen: Synthetic Human
-Created on July 12, 2020
-@author: lnxusr1
-@license: MIT License
-@summary: Skill and Skill Manager classes for learned skills
-'''
-
 import os, logging, random
 from padatious import IntentContainer
 from .shared import dayPart

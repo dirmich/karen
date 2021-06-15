@@ -1,10 +1,6 @@
-'''
-Project Karen: Synthetic Human
-Created on July 12, 2020
-@author: lnxusr1
-@license: MIT License
-@summary: Karen's library of shared functions and classes
-'''
+"""
+Shared library of functions used throughout Karen's various modules
+"""
 
 import threading 
 import json

@@ -1,11 +1,3 @@
-'''
-Project Karen: Synthetic Human
-Created on July 12, 2020
-@author: lnxusr1
-@license: MIT License
-@summary: Device Container for assembling input/output devices
-'''
-
 import logging
 import threading 
 import time
@@ -150,10 +142,10 @@ class DeviceContainer:
             
             req = KJSONRequest(self, conn, path, payload)
             if (len(path) == 8 and path == "/control") or (len(path) > 8 and path[:9] == "/control/"):
-                return self.processCommandRequest(req)
+                return self._processCommandRequest(req)
             
             elif (len(path) == 7 and path == "/status") or (len(path) > 7 and path[:8] == "/status/"):
-                return self.processStatusRequest(req)
+                return self._processStatusRequest(req)
             else:
                 return req.sendResponse(True, "Invalid request", httpStatusCode=404, httpStatusMessage="Not Found")
         except:
@@ -224,7 +216,7 @@ class DeviceContainer:
         
         return True
     
-    def processStatusRequest(self, jsonRequest):
+    def _processStatusRequest(self, jsonRequest):
         """
         Processes an inbound status request.  Generally returns a summary of connected devices and friendly names.
         
@@ -253,7 +245,7 @@ class DeviceContainer:
         
         return jsonRequest.sendResponse(message="Device is active.")
 
-    def processCommandRequest(self, jsonRequest):
+    def _processCommandRequest(self, jsonRequest):
         """
         Processes an inbound data request.  Parses the command and calls the respective command handler.
         
