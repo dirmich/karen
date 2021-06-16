@@ -132,3 +132,4 @@ dmypy.json
 /Pipfile.lock
 /.project
 /.pydevproject
+/pypi_upload.sh
