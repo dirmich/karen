@@ -3,12 +3,30 @@ This project is dedicated to building a "Synthetic Human" which is called Karen 
 
 Visit our main site: [https://projectkaren.ai/](https://projectkaren.ai/)
 
-## Project Goals
+## Quick Install
 
-I'm not sure where we will end up but the goals for this project are pretty simple:
+Karen is available through pip, but to use the built-in devices there are a few extra libraries you may require.  Please visit the [Basic Install](installation.basic.md) page for more details.  To get started try:
 
-1. Must be able to do every day tasks (tell time, weather, and be context aware)
-2. Must provide evidence of "thought" (I'm still working on what exactly this means)
-3. Must be fun (because the moment it becomes "work" I'm sure we'll all lose interest)
+```
+pip3 install karen
+```
+
+Once installed you can create a new instance of Karen with the following:
+
+```
+import karen
+karen.start('/path/to/config.json')
+```
+
+If everything is working properly you should be able to point your device to the web control panel to test it out.  The default URL is:
+
+__
+[http://localhost:8080/webgui](http://localhost:8080/webgui)
+__
+
+![Control Panel](https://projectkaren.ai/wp-content/uploads/2021/06/karen_model_0_5_4_control_panel.png)
+
+## Demo running on Raspberry Pi
+
 
 [![Project Karen](https://projectkaren.ai/wp-content/uploads/2021/06/karen_model_0_1_0_demo3.jpg)](https://projectkaren.ai/static/karen_model_0_1.mp4)

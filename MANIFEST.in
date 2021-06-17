@@ -1,0 +1,12 @@
+include basic_config.json
+include CHANGELOG.md
+include README.md
+include run.py
+include run.sh
+include requirements.txt
+recursive-include karen/data *.json
+recursive-include karen/data/models *.sh
+recursive-include karen/web *.*
+recursive-include karen/skills *.py
+recursive-include karen/skills *.intent
+recursive-include karen/skills *.dialog

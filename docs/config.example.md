@@ -1,3 +1,6 @@
+# Configuration Example
+
+```
 {
 	"settings": {
 		"libraryFolder": null,
@@ -46,6 +49,7 @@
 		"tcp_port": 8080,
 		"hostname": null,
 		"ssl": {
+		    "use_ssl": false,
 			"cert_file": null,
 			"key_file": null
 		},
@@ -61,3 +65,4 @@
 		]
 	}
 }
+```

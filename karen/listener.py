@@ -136,7 +136,7 @@ class Listener():
         if self.speechModel is None:
             # Search for speech model?
             self.logger.info("Speech model not specified.  Attempting to use defaults.")
-            local_path = os.path.join(os.path.dirname(__file__), "..", "models", "speech")
+            local_path = os.path.join(os.path.dirname(__file__), "data", "models", "speech")
             files = os.listdir(local_path)
             files = sorted(files, reverse=True) # Very poor attempt to get the latest version of the model if multiple exist.
             bFoundPBMM=False 

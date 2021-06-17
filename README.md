@@ -43,18 +43,10 @@ sudo apt-get install python3-pip \
   python3-pyaudio
 ```
 
-### Required Python Libraries
+### Install from PyPi
 
 ```
-sudo pip3 install opencv-python \
-  opencv-contrib-python \
-  pyaudio \
-  Pillow \
-  webrtcvad \
-  halo \
-  scipy \
-  deepspeech \
-  padatious
+pip3 install karen
 ```
 
 ### Mozilla DeepSpeech Models
@@ -71,13 +63,8 @@ There are lots of ways to leverage karen.  You can import the device modules lik
 To run Karen in the entirety:
 
 ```
-python3 run.py [parameters]
-```
-
-To run Karen as a background process check out:
-
-```
-run.sh [parameters]
+import karen
+karen.start('/path/to/config.json')
 ```
 
 **NOTICE** - Karen is under development against Python 3.  She is not compatible with Python 2 so be sure to use "python3" or "python3" (and install the related binaries if needed).

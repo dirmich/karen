@@ -12,6 +12,10 @@ nav:
       - Basic Install: 'installation.basic.md'
       - Audio/Video Extras: 'installation.audio.md'
       - Raspberry Pi Notes: 'installation.raspberrypi.md'
+    - Starting Up: 'karen.md'
+    - Configuration Files:
+      - Overview: 'config.overview.md'
+      - Full Example: 'config.example.md'
     - Devices:
       - karen.Brain: 'karen.brain.md'
       - karen.Listener: 'karen.listener.md'
