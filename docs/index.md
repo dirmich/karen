@@ -11,7 +11,7 @@ Karen is available through pip, but to use the built-in devices there are a few 
 pip3 install karen
 ```
 
-Once installed you can create a new instance of Karen with the following:
+Once installed you can create a new instance of Karen using a [configuration file](config.overview.md) with the following:
 
 ```
 import karen

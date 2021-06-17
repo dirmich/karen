@@ -26,6 +26,24 @@ from .brain import Brain
 from .skillmanager import Skill, SkillManager
 from .shared import dayPart
 
+def _downloadFile(url, folderName, overwrite=False):
+    import requests
+
+    local_filename = url.split('/')[-1]
+    myFileName = os.path.join(os.path.dirname(__file__),'data','models',folderName,local_filename)
+    if os.path.isfile(myFileName) and not overwrite:
+        print("File exists.  Skipping.")
+        return True # File already exists
+    
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        with open(myFileName, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192): 
+                f.write(chunk)
+        
+    print("Download successful.")        
+    return True
+
 def _getImport(libs, val):
     """
     Dynamically imports a library into memory for referencing during configuration file parsing.
@@ -50,6 +68,62 @@ def _getImport(libs, val):
             return ret
 
     return None
+
+def download_models(version=None, model_type="pbmm", include_scorer=True, overwrite=False):
+    if str(model_type).lower() in ["pbmm","tflite"]:
+        
+        if version is None:
+            import subprocess
+            try:
+                text = subprocess.getoutput("pip3 show deepspeech")
+                if text is not None:
+                    lines = text.split("\n")
+                    for line in lines:
+                        if "Version: " in line:
+                            version = line.replace("Version: ","").strip()
+                            if version == "":
+                                version = None
+            except:
+                pass
+
+            if version is None:            
+                try:
+                    text = subprocess.getoutput("pip show deepspeech")
+                    if text is not None:
+                        lines = text.split("\n")
+                        for line in lines:
+                            if "Version: " in line:
+                                version = line.replace("Version: ","").strip()
+                                if version == "":
+                                    version = None
+                except:
+                    pass
+            
+        
+        if version is None:
+            print("Unable to determine deepspeech version.")
+            quit(1)
+        else:
+            print("Identified deepspeech version as " + version)
+        
+        model_url = "https://github.com/mozilla/DeepSpeech/releases/download/v" + version + "/deepspeech-" + version + "-models."+str(model_type).lower()
+        scorer_url = "https://github.com/mozilla/DeepSpeech/releases/download/v" + version + "/deepspeech-" + version + "-models.scorer"
+        
+        print("Downloading",model_url)
+        ret = _downloadFile(model_url, "speech", overwrite=overwrite)
+        
+        if ret and include_scorer:
+            print("Downloading",scorer_url)
+            ret = _downloadFile(scorer_url, "speech", overwrite=overwrite)
+        
+        if not ret:
+            print("An error occurred downloading the models.")
+    
+        return ret 
+    
+    else:
+        logging.error("Model type (" + str(model_type) + ") not expected.")
+        return False
         
 def start(configFile, log_level="info", log_file=None):
     """

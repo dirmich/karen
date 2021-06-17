@@ -2,6 +2,8 @@
 
 Karen supports the use of a JSON configuration file to set up all the devices, their callbacks, and their connection to the Brain.  This is made available for those who may want to use Karen but opt to not have to write any Python code.
 
+* Skip ahead to the [full Configuration Example](config.example.md)
+
 ## Global Settings
 
 Karen can be made to import 3rd party libraries that are located outside of her primary folders.  This is done by adding a libraryFolder setting.  This will add a location to the PYTHONPATH variable leveraged during runtime.  Your libraries can then be referenced relative to that location.

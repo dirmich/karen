@@ -43,22 +43,33 @@ sudo apt-get install python3-pip \
   python3-pyaudio
 ```
 
-### Install from PyPi
+### Install with PIP (Recommended)
 
 ```
 pip3 install karen
 ```
 
-### Mozilla DeepSpeech Models
-To download the speech models you can use the script below or visit the [DeepSpeech](https://github.com/mozilla/DeepSpeech) page:
+### Install via Download (Alternative)
+
+Make sure you see the requirements.txt for other python libraries that are required.  The PIP method is recommended as it will automatically include these dependencies.
 
 ```
-wget https://raw.githubusercontent.com/lnxusr1/karen/0ab615ead3862326d69926294267f0a8669886dd/models/speech/download-models.sh
-sh ./download-models.sh
+cd /path/to/karen
+python3 setup.py install
 ```
+
+### Get the Mozilla DeepSpeech Models
+To download the speech models you can use the script below inside a Python shell or visit the [DeepSpeech](https://github.com/mozilla/DeepSpeech/releases/latest) page:
+
+```
+import karen
+karen.download_models(version="0.9.3", model_type="pbmm", include_scorer=True)
+```
+
+__NOTE:__  The version number is optional and ommitted it will attempt to determine your currently installed version and use that to download the appropriate inference model.  Also, you will need to use ```model_type="tflite"``` if you are running on Raspberry Pi.
 
 ## Starting Up
-There are lots of ways to leverage karen.  You can import the device modules like listener and use on its own or you can start the entire process.  Check out the "run.py" for some ideas on how to build a device container and add input/output devices to it.
+There are lots of ways to leverage karen.  You can import the device modules like listener and use on its own or you can start the entire process.  There is a basic configuration file located in the data directory inside the karen module directory (```/path/to/karen/data/basic_config.json```).
 
 To run Karen in the entirety:
 
@@ -67,14 +78,8 @@ import karen
 karen.start('/path/to/config.json')
 ```
 
-**NOTICE** - Karen is under development against Python 3.  She is not compatible with Python 2 so be sure to use "python3" or "python3" (and install the related binaries if needed).
+**NOTICE** - Karen is under development against Python 3.  She is not compatible with Python 2 so be sure to use ```pip3``` or ```python3``` if appropriate (and install the related binaries if needed).
 
-## Project Goals
-I'm not sure where we will end up but the goals for this project are pretty simple:
-
-1. Must be able to do every day tasks (tell time, weather, and be context aware)
-2. Must provide evidence of "thought" (I'm still working on what exactly this means)
-3. Must be fun (because the moment it becomes "work" I'm sure we'll all lose interest)
 
 ## Help &amp; Support
 Installation instructions and documentation is available at [https://projectkaren.ai](https://projectkaren.ai)

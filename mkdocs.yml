@@ -26,7 +26,7 @@ nav:
       - Shared Library: 'karen.shared.md'
     - Handlers: 'karen.handlers.md'
     - Skills:
-      - 'Template: Skill': 'karen.skill.md'
+      - Skill Template: 'karen.skill.md'
       - HelloSkill: 'karen.skills.helloskill.md'
       - KnockKnockSkill: 'karen.skills.knockknockskill.md'
       - TellDateTimeSkill: 'karen.skills.telldatetimeskill.md'
