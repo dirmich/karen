@@ -17,7 +17,7 @@
 		"devices": [
 			{
 				"friendlyName": "living room",
-				"type": "karen.Listener",
+				"type": "karen.listener.Listener",
 				"parameters": {
 					"speechModel": null,
 					"speechScorer": null,
@@ -32,7 +32,7 @@
 			},
 			{
 				"friendlyName": "living room",
-				"type": "karen.Speaker"
+				"type": "karen.speaker.Speaker"
 			}
 		],
 		"commands": [

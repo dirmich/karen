@@ -1,5 +1,5 @@
-# karen.Listener
+# karen.listener.Listener
 
-::: karen.Listener
+::: karen.listener.Listener
     rendering:
       show_source: false

@@ -7,7 +7,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=karen.__app_name__ + " v" + karen.__version__, formatter_class=argparse.RawTextHelpFormatter, epilog='''To start the services try:\nrun.py --config [CONFIG_FILE]\n\nMore information available at:\nhttp://projectkaren.ai''')
     #parser.add_argument('--locale', default="en_us", help="Language Locale")
 
-    parser.add_argument('-c','--config', required=True, help="Configuration file")
+    parser.add_argument('-c','--config', default=None, help="Configuration file")
     parser.add_argument('-v','--version', action="store_true", help="Print Version")
     
     logging_group = parser.add_argument_group('Logging Arguments')
@@ -21,9 +21,11 @@ if __name__ == "__main__":
         print(karen.__app_name__,"v"+karen.__version__)
         quit()
 
-    configFile = os.path.abspath(ARGS.config)
-    if not os.path.isfile(configFile):
-        raise Exception("Configuration file does not exist.")
-        quit(1)
+    configFile = ARGS.config
+    if configFile is not None:
+        configFile = os.path.abspath(ARGS.config)
+        if not os.path.isfile(configFile):
+            raise Exception("Configuration file does not exist.")
+            quit(1)
         
-    karen.start(configFile, log_level=ARGS.log_level, log_file=ARGS.log_file)
+    karen.start(configFile=configFile, log_level=ARGS.log_level, log_file=ARGS.log_file)

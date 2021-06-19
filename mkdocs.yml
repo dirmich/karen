@@ -16,11 +16,12 @@ nav:
     - Configuration Files:
       - Overview: 'config.overview.md'
       - Full Example: 'config.example.md'
-    - Devices:
+    - Operations:
       - karen.Brain: 'karen.brain.md'
-      - karen.Listener: 'karen.listener.md'
-      - karen.Speaker: 'karen.speaker.md'
       - karen.DeviceContainer: 'karen.device.md'
+    - Devices:
+      - karen.listener.Listener: 'karen.listener.md'
+      - karen.speaker.Speaker: 'karen.speaker.md'
     - Functions:
       - Skill Manager: 'karen.skillmanager.md'
       - Shared Library: 'karen.shared.md'

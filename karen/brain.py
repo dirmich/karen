@@ -320,7 +320,7 @@ class Brain(object):
         Args:
             path (str):  relative path to call (e.g. "control" or "data").
             payload (object):  Object to be converted to JSON and sent in the body of the request
-            inType (str):  The type of device to deliver the request to (e.g. "karen.Listener").  This will limit the request to only clients with the specified type of device attached.  (optional) 
+            inType (str):  The type of device to deliver the request to (e.g. "karen.listener.Listener").  This will limit the request to only clients with the specified type of device attached.  (optional) 
             friendlyName (str):  The friendly name of the client device (e.g. "living room").  This will limit the request to only clients that a device (of the specified type) with that friendly name.  (optional)
             
         Returns:
@@ -509,7 +509,7 @@ class Brain(object):
         speaker = None
         for item in self.clients:
             if "active" in item and item["active"]:
-                if "devices" in item and "karen.Speaker" in item["devices"] and item["devices"]["karen.Speaker"]["count"] > 0:
+                if "devices" in item and "karen.speaker.Speaker" in item["devices"] and item["devices"]["karen.speaker.Speaker"]["count"] > 0:
                     speaker = item["url"]
                     break
         
@@ -519,14 +519,14 @@ class Brain(object):
         
         for item in self.clients:
             if "active" in item and item["active"]:
-                if "devices" in item and "karen.Listener" in item["devices"] and item["devices"]["karen.Listener"]["count"] > 0:
+                if "devices" in item and "karen.listener.Listener" in item["devices"] and item["devices"]["karen.listener.Listener"]["count"] > 0:
                     sendJSONRequest(urljoin(item["url"],"control"), { "command": "AUDIO_OUT_START" })
 
         sendJSONRequest(urljoin(speaker,"control"), { "command": "SAY", "data": str(text) })
 
         for item in self.clients:
             if "active" in item and item["active"]:
-                if "devices" in item and "karen.Listener" in item["devices"] and item["devices"]["karen.Listener"]["count"] > 0:
+                if "devices" in item and "karen.listener.Listener" in item["devices"] and item["devices"]["karen.listener.Listener"]["count"] > 0:
                     sendJSONRequest(urljoin(item["url"],"control"), { "command": "AUDIO_OUT_END" })
             
         return True

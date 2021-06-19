@@ -126,7 +126,7 @@ Here's a simple device container configuration with one listener class and one s
 		"devices": [
 			{
 				"friendlyName": "living room",
-				"type": "karen.Listener",
+				"type": "karen.listener.Listener",
 				"parameters": {
 					"speechModel": null,
 					"speechScorer": null,
@@ -141,7 +141,7 @@ Here's a simple device container configuration with one listener class and one s
 			},
 			{
 				"friendlyName": "living room",
-				"type": "karen.Speaker"
+				"type": "karen.speaker.Speaker"
 			}
 		],
 		"commands": [
@@ -181,7 +181,7 @@ You must include a brain section in all configurations.  The brain must at least
 		"devices": [
 			{
 				"friendlyName": "living room",
-				"type": "karen.Speaker"
+				"type": "karen.speaker.Speaker"
 			}
 		],
 		"commands": [

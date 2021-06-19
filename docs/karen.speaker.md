@@ -1,5 +1,5 @@
-# karen.Speaker
+# karen.speaker.Speaker
 
-::: karen.Speaker
+::: karen.speaker.Speaker
     rendering:
       show_source: false

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.5] - 2021-06-19
+
+### Added
+
+- Download_model support to auto-detect deepspeech version and location
+- Simplified startup logic with default configuration
+
+### Modified 
+
+- Install process for pypi (validated on Raspberry Pi)
+- Docs now reflect simplified startup and relocated library paths
+- Minimized dependencies/requirements list
+
+
 ## [0.5.4] - 2021-06-16
 
 ### Added

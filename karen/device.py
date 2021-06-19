@@ -372,7 +372,7 @@ class DeviceContainer:
         Stops all connected input/output devices.
         
         Args:
-            deviceType (str):  The type of device to stop (e.g. "karen.Listener"). (optional)
+            deviceType (str):  The type of device to stop (e.g. "karen.listener.Listener"). (optional)
             removeDevices (bool):  Indicates if the devices should be removed once stopped. (optional)
             
         Returns:
@@ -395,7 +395,7 @@ class DeviceContainer:
         Adds a new input/output device and optionally starts it and registers it with the brain.
         
         Args:
-            deviceType (str):  The type of the device being added (e.g. "karen.Listener").
+            deviceType (str):  The type of the device being added (e.g. "karen.listener.Listener").
             obj (object):  The instantiated class object of the input/output device.
             friendlyName (str):  The friendly name of the device (e.g. "living room").
             autoStart (bool):  Indicates if this call should call the start() method on input/output device.

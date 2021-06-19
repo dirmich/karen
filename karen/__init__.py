@@ -13,14 +13,14 @@ import json
 sys.path.insert(0,os.path.join(os.path.abspath(os.path.dirname(__file__)), "skills"))
 
 # version as tuple for simple comparisons 
-VERSION = (0, 5, 4) 
+VERSION = (0, 5, 5) 
 # string created from tuple to avoid inconsistency 
 __version__ = ".".join([str(x) for x in VERSION])
 __app_name__ = "Project Karen"
 
 # Imports for built-in features
-from .listener import Listener
-from .speaker import Speaker
+#from .listener import Listener
+#from .speaker import Speaker
 from .device import DeviceContainer
 from .brain import Brain
 from .skillmanager import Skill, SkillManager
@@ -34,12 +34,16 @@ def _downloadFile(url, folderName, overwrite=False):
     if os.path.isfile(myFileName) and not overwrite:
         print("File exists.  Skipping.")
         return True # File already exists
-    
+    if os.path.isfile(myFileName) and overwrite:
+        os.remove(myFileName)
+        
     with requests.get(url, stream=True) as r:
         r.raise_for_status()
-        with open(myFileName, 'wb') as f:
+        with open(myFileName+".tmp", 'wb') as f:
             for chunk in r.iter_content(chunk_size=8192): 
                 f.write(chunk)
+        
+        os.rename(myFileName+".tmp", myFileName)
         
     print("Download successful.")        
     return True
@@ -69,7 +73,7 @@ def _getImport(libs, val):
 
     return None
 
-def download_models(version=None, model_type="pbmm", include_scorer=True, overwrite=False):
+def download_models(version=None, model_type="pbmm", include_scorer=False, overwrite=False):
     if str(model_type).lower() in ["pbmm","tflite"]:
         
         if version is None:
@@ -125,7 +129,7 @@ def download_models(version=None, model_type="pbmm", include_scorer=True, overwr
         logging.error("Model type (" + str(model_type) + ") not expected.")
         return False
         
-def start(configFile, log_level="info", log_file=None):
+def start(configFile=None, log_level="info", log_file=None):
     """
     Static method to start a new instance of karen based on a provided configuration file.
     
@@ -134,6 +138,9 @@ def start(configFile, log_level="info", log_file=None):
         log_level (str):  The level of logging to provide (critical, error, warning, info, and debug). )ptional)
         log_file (str):  Path and Name of the log file to create (otherwise prints all messages to stderr). (optional)
     """
+    
+    if configFile is None:
+        configFile = os.path.abspath(os.path.join(os.path.dirname(__file__),"data","basic_config.json"))
     
     configFile = os.path.abspath(configFile)
     if not os.path.isfile(configFile):

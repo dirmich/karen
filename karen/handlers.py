@@ -91,7 +91,7 @@ def brain_handleRelayCommand(jsonRequest):
     
 def brain_handleRelayListenerCommand(jsonRequest):
     """
-    Relays an inbound request to all karen.Listener devices.
+    Relays an inbound request to all karen.listener.Listener devices.
     
     Args:
         jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
@@ -104,7 +104,7 @@ def brain_handleRelayListenerCommand(jsonRequest):
     jsonRequest.container.logger.debug(my_cmd + " received.")
     
     jsonRequest.sendResponse(False, "Command completed.") 
-    retVal = jsonRequest.container.sendRequestToDevices("control", jsonRequest.payload, "karen.Listener")
+    retVal = jsonRequest.container.sendRequestToDevices("control", jsonRequest.payload, "karen.listener.Listener")
         
     return jsonRequest.sendResponse(False, "Command completed.") 
 
@@ -143,8 +143,8 @@ def device_handleStartStopListenerCommand(jsonRequest):
     my_cmd = str(jsonRequest.payload["command"]).upper()
     jsonRequest.container.logger.debug(my_cmd + " received.")
 
-    if "karen.Listener" in jsonRequest.container.objects:
-        for item in jsonRequest.container.objects["karen.Listener"]:
+    if "karen.listener.Listener" in jsonRequest.container.objects:
+        for item in jsonRequest.container.objects["karen.listener.Listener"]:
             if my_cmd == "START_LISTENER":
                 item["device"].start()
             elif my_cmd == "STOP_LISTENER":
@@ -167,15 +167,15 @@ def device_handleAudioOutCommand(jsonRequest):
     jsonRequest.container.logger.debug(my_cmd + " received.")
 
     if my_cmd == "AUDIO_OUT_START":    
-        if "karen.Listener" in jsonRequest.container.objects:
-            for item in jsonRequest.container.objects["karen.Listener"]:
+        if "karen.listener.Listener" in jsonRequest.container.objects:
+            for item in jsonRequest.container.objects["karen.listener.Listener"]:
                 item["device"].logger.debug("AUDIO_OUT_START")
                 item["device"]._isAudioOut = True
                 
         return jsonRequest.sendResponse(False, "Pausing Listener during speech utterence.")
     elif my_cmd == "AUDIO_OUT_END":    
-        if "karen.Listener" in jsonRequest.container.objects:
-            for item in jsonRequest.container.objects["karen.Listener"]:
+        if "karen.listener.Listener" in jsonRequest.container.objects:
+            for item in jsonRequest.container.objects["karen.listener.Listener"]:
                 item["device"].logger.debug("AUDIO_OUT_END")
                 item["device"]._isAudioOut = False
                 
@@ -198,9 +198,9 @@ def device_handleSayCommand(jsonRequest):
         jsonRequest.container.logger.error("Invalid payload for SAY command detected")
         return jsonRequest.sendResponse(True, "Invalid payload for SAY command detected.") 
     
-    if "karen.Speaker" in jsonRequest.container.objects:
+    if "karen.speaker.Speaker" in jsonRequest.container.objects:
         # First we try to send to active speakers physically connected to the same instance
-        for item in jsonRequest.container.objects["karen.Speaker"]:
+        for item in jsonRequest.container.objects["karen.speaker.Speaker"]:
             item["device"].say(str(jsonRequest.payload["data"]))
             return jsonRequest.sendResponse(False, "Say command completed.") 
 
