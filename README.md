@@ -40,18 +40,25 @@ import karen
 karen.download_models(version="0.9.3", model_type="pbmm", include_scorer=True)
 ```
 
-__NOTE:__  The version number is optional and ommitted it will attempt to determine your currently installed version and use that to download the appropriate inference model.  Also, you will need to use ```model_type="tflite"``` if you are running on Raspberry Pi.
+__NOTE:__  The version number is optional and if ommitted it will attempt to determine your currently installed version and use that to download the appropriate inference model.  Also, you will need to use ```model_type="tflite"``` if you are running on Raspberry Pi.
 
 ## Starting Up
 There are lots of ways to leverage karen.  You can import the device modules like listener and use on its own or you can start the entire process.  There is a basic configuration file located in the data directory inside the karen module directory (```/path/to/karen/data/basic_config.json```).
 
-To run Karen in the entirety:
+To run Karen using the default Listener + Speaker configuration try:
 
 ```
 import karen
-karen.start([configuration_file])
+karen.start()
 ```
-__NOTE:__ Use ```model_type="tflite"``` if running on the Raspberry Pi.  If you have a webcam or video recording device you can also try ```karen.start("video")``` to optionally start the watcher device.
+
+__NOTE:__ If you have a webcam or video recording device you can try ```karen.start("video")``` to optionally start the watcher device or ```karen.start("/path/to/config.json")``` to use a custom configuration.
+
+Read more about startup options including starting the Watcher in [Starting Up](https://docs.projectkaren.ai/en/latest/karen/).
+
+If everything is working properly you should be able to point your device to the web control panel to test it out.  The default URL is:
+
+__[http://localhost:8080/webgui](http://localhost:8080/webgui)__
 
 *Karen is under development against Python 3.  She is not compatible with Python 2 so be sure to use* ```pip3``` *or* ```python3``` *if appropriate (and install the related binaries if needed).*
 

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] 
+
+### Added
+
+- Watcher device
+- Trainer for watcher device using haarcascade classifiers
+- Basic Configuration for Video + Audio (basic_config_video.json)
+- Handlers for capturing IMAGE_INPUT
+
+### Modified
+
+- karen.start() method to support "video" option
+- Updated Raspberry Pi documentation
+
 ## [0.5.5] - 2021-06-19
 
 ### Added
