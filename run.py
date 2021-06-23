@@ -9,6 +9,7 @@ if __name__ == "__main__":
 
     parser.add_argument('-c','--config', default=None, help="Configuration file")
     parser.add_argument('-v','--version', action="store_true", help="Print Version")
+    parser.add_argument('--watcher', action="store_true", help="Use watcher default configuration")
     
     logging_group = parser.add_argument_group('Logging Arguments')
     
@@ -27,5 +28,8 @@ if __name__ == "__main__":
         if not os.path.isfile(configFile):
             raise Exception("Configuration file does not exist.")
             quit(1)
-        
+    else:
+        if ARGS.watcher:
+            configFile = "video"
+            
     karen.start(configFile=configFile, log_level=ARGS.log_level, log_file=ARGS.log_file)

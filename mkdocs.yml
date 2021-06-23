@@ -13,15 +13,18 @@ nav:
       - Audio/Video Extras: 'installation.audio.md'
       - Raspberry Pi Notes: 'installation.raspberrypi.md'
     - Starting Up: 'karen.md'
+    - Training your Watcher: 'karen.watcher.train.md'
     - Configuration Files:
       - Overview: 'config.overview.md'
-      - Full Example: 'config.example.md'
+      - Audio-only Example: 'config.example.md'
+      - Audio/Video Example: 'config.example.video.md'
     - Operations:
       - karen.Brain: 'karen.brain.md'
       - karen.DeviceContainer: 'karen.device.md'
     - Devices:
       - karen.listener.Listener: 'karen.listener.md'
       - karen.speaker.Speaker: 'karen.speaker.md'
+      - karen.watcher.Watcher: 'karen.watcher.md'
     - Functions:
       - Skill Manager: 'karen.skillmanager.md'
       - Shared Library: 'karen.shared.md'

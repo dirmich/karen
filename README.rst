@@ -83,9 +83,11 @@ To run Karen in the entirety:
 ::
 
     import karen
-    karen.start('/path/to/config.json')
+    karen.start([configuration_file])
 
-**NOTE:** Use ``model_type="tflite"`` if running on the Raspberry Pi.
+**NOTE:** Use ``model_type="tflite"`` if running on the Raspberry Pi. If
+you have a webcam or video recording device you can also try
+``karen.start("video")`` to optionally start the watcher device.
 
 *Karen is under development against Python 3. She is not compatible with
 Python 2 so be sure to use* ``pip3`` *or* ``python3`` *if appropriate

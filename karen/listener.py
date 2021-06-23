@@ -174,7 +174,7 @@ class Listener():
         self._isAudioOut = False 
         
     @threaded
-    def _doCallback(self, text):
+    def _doCallback(self, inData):
         """
         Calls the specified callback as a thread to keep from blocking audio device listening
 
@@ -187,7 +187,7 @@ class Listener():
 
         try:
             if self.callback is not None:
-                self.callback("AUDIO_INPUT", text)
+                self.callback("AUDIO_INPUT", inData)
         except:
             pass
         
@@ -365,8 +365,7 @@ class Listener():
 
         self._isRunning = False
         if self.thread is not None:
-            if not self.wait():
-                return False 
+            self.thread.join()
             
         self.logger.info("Stopped")
         return True

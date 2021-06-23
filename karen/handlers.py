@@ -49,6 +49,26 @@ def brain_handleAudioInputData(jsonRequest):
     
     return True
 
+def brain_handleImageInputData(jsonRequest):
+    """
+    Accepts incoming image capture data, saves them to the data catalog, and processes to determine appropriate response.
+    
+    Args:
+        jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+        
+    Returns:
+        (bool):  True on success else raises an exception.
+    """
+    
+    if "data" not in jsonRequest.payload or jsonRequest.payload["data"] is None:
+        return jsonRequest.sendResponse(True, "Invalid IMAGE_INPUT received.")
+    
+    jsonRequest.container.logger.info("(" + str(jsonRequest.payload["type"]) + ") " + str(jsonRequest.payload["data"]))
+    jsonRequest.container.addData(jsonRequest.payload["type"], jsonRequest.payload["data"])
+    jsonRequest.sendResponse(message="Data collected successfully.")
+    
+    return True
+
 def brain_handleKillAllCommand(jsonRequest):
     """
     Sends KILL signal to all connected devices and terminates local instance upon completion.
@@ -108,6 +128,25 @@ def brain_handleRelayListenerCommand(jsonRequest):
         
     return jsonRequest.sendResponse(False, "Command completed.") 
 
+def brain_handleRelayWatcherCommand(jsonRequest):
+    """
+    Relays an inbound request to all karen.watcher.Watcher devices.
+    
+    Args:
+        jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+        
+    Returns:
+        (bool):  True on success and False on failure.
+    """
+
+    my_cmd = jsonRequest.payload["command"]
+    jsonRequest.container.logger.debug(my_cmd + " received.")
+    
+    jsonRequest.sendResponse(False, "Command completed.") 
+    retVal = jsonRequest.container.sendRequestToDevices("control", jsonRequest.payload, "karen.watcher.Watcher")
+        
+    return jsonRequest.sendResponse(False, "Command completed.") 
+
 def brain_handleSayData(jsonRequest):
     """
     Accepts incoming data command for speech and calls the brain's say() method.
@@ -148,6 +187,29 @@ def device_handleStartStopListenerCommand(jsonRequest):
             if my_cmd == "START_LISTENER":
                 item["device"].start()
             elif my_cmd == "STOP_LISTENER":
+                item["device"].stop()
+        
+    return jsonRequest.sendResponse(False, "Command completed.") 
+
+def device_handleStartStopWatcherCommand(jsonRequest):
+    """
+    Handles an inbound START/STOP method for a watcher.  Stops the watcher device but not the client container.
+    
+    Args:
+        jsonRequest (karen.shared.KJSONRequest): Object containing the inbound JSON request
+        
+    Returns:
+        (bool):  True on success and False on failure.
+    """
+
+    my_cmd = str(jsonRequest.payload["command"]).upper()
+    jsonRequest.container.logger.debug(my_cmd + " received.")
+
+    if "karen.watcher.Watcher" in jsonRequest.container.objects:
+        for item in jsonRequest.container.objects["karen.watcher.Watcher"]:
+            if my_cmd == "START_WATCHER":
+                item["device"].start()
+            elif my_cmd == "STOP_WATCHER":
                 item["device"].stop()
         
     return jsonRequest.sendResponse(False, "Command completed.") 

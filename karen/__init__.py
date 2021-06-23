@@ -13,7 +13,7 @@ import json
 sys.path.insert(0,os.path.join(os.path.abspath(os.path.dirname(__file__)), "skills"))
 
 # version as tuple for simple comparisons 
-VERSION = (0, 5, 5) 
+VERSION = (0, 6, 0) 
 # string created from tuple to avoid inconsistency 
 __version__ = ".".join([str(x) for x in VERSION])
 __app_name__ = "Project Karen"
@@ -139,8 +139,10 @@ def start(configFile=None, log_level="info", log_file=None):
         log_file (str):  Path and Name of the log file to create (otherwise prints all messages to stderr). (optional)
     """
     
-    if configFile is None:
+    if configFile is None or str(configFile).lower() == "audio":
         configFile = os.path.abspath(os.path.join(os.path.dirname(__file__),"data","basic_config.json"))
+    elif str(configFile).lower() == "video":
+        configFile = os.path.abspath(os.path.join(os.path.dirname(__file__),"data","basic_config_video.json"))
     
     configFile = os.path.abspath(configFile)
     if not os.path.isfile(configFile):
@@ -169,8 +171,8 @@ def start(configFile=None, log_level="info", log_file=None):
     logging.basicConfig(datefmt='%Y-%m-%d %H:%M:%S %z', filename=log_file, format='%(asctime)s %(name)-12s - %(levelname)-9s - %(message)s', level=logging.DEBUG)
     
     # Loggers we don't control
-    logging.getLogger("requests").setLevel(logging_level)
-    logging.getLogger("urllib3").setLevel(logging_level)
+    logging.getLogger("requests").setLevel(logging.INFO)
+    logging.getLogger("urllib3").setLevel(logging.INFO)
     
     # Loggers that are built into Karen
     logging.getLogger("CTYPES").setLevel(logging_level)
@@ -179,6 +181,7 @@ def start(configFile=None, log_level="info", log_file=None):
     logging.getLogger("LISTENER").setLevel(logging_level)
     logging.getLogger("BRAIN").setLevel(logging_level)
     logging.getLogger("SKILLMANAGER").setLevel(logging_level)
+    logging.getLogger("WATCHER").setLevel(logging_level)
 
     # Process configuration file and start engines as appropriate.
     brain = None

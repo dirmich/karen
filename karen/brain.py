@@ -567,8 +567,8 @@ class Brain(object):
             (bool):  True on success else will raise an exception.
         """
 
-        if not self._isRunning:
-            return True 
+        #if not self._isRunning:
+        #    return True 
                 
         if seconds > 0:
             self.logger.info("Shutting down in "+str(seconds)+" second(s).")
@@ -600,6 +600,15 @@ class Brain(object):
             return True 
         
         self._isRunning = False 
+        
+        i = len(self._threadPool) - 1
+        while i >= 0:
+            try:
+                self._threadPool[i].join()
+            except:
+                pass
+                
+            i = i - 1
         
         if self._socket is not None:
             

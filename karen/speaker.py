@@ -25,7 +25,7 @@ class Speaker():
         self._isRunning = False
         
     @threaded
-    def _doCallback(self, text):
+    def _doCallback(self, inData):
         """
         Calls the specified callback as a thread to keep from blocking additional processing.
 
@@ -38,7 +38,7 @@ class Speaker():
 
         try:
             if self.callback is not None:
-                self.callback(text)
+                self.callback("SPEAKER_INPUT", inData)
         except:
             pass
         
@@ -90,7 +90,7 @@ class Speaker():
     
     def wait(self, seconds=0):
         """
-        Waits for any active speakders to complete before closing.  Provided for compatibility as speaker does not requrie a daemon.
+        Waits for any active speakers to complete before closing.  Provided for compatibility as speaker does not requrie a daemon.
         
         Args:
             seconds (int):  Number of seconds to wait before calling the "stop()" function

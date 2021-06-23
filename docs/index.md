@@ -30,7 +30,9 @@ karen.download_models(model_type="pbmm")
 karen.start()
 ```
 
-__NOTE:__ Use ```model_type="tflite"``` if running on the Raspberry Pi.
+__NOTE:__ Use ```model_type="tflite"``` if running on the Raspberry Pi.  If you have a webcam or video recording device you can also try ```karen.start("video")``` to optionally start the watcher device.
+
+Read more about startup options including starting the Watcher in [Starting Up](karen.md).
 
 If everything is working properly you should be able to point your device to the web control panel to test it out.  The default URL is:
 

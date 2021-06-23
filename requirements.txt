@@ -11,3 +11,4 @@ Pillow
 halo
 scipy
 padatious
+opencv-contrib-python-headless
