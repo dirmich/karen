@@ -7,6 +7,7 @@ import ssl
 from urllib.parse import urljoin
 
 from .shared import threaded, KHTTPRequestHandler, KJSONRequest, sendJSONRequest
+from pickle import NONE
 
 class DeviceContainer:
     """
@@ -141,6 +142,25 @@ class DeviceContainer:
             self.httplogger.debug("CONTAINER (" + str(address[0]) + ") " + str(r.command) + " " + str(path))
             
             req = KJSONRequest(self, conn, path, payload)
+
+            if r.command == "OPTIONS":
+                print(r.headers) 
+                headers = str(r.headers).split("\n") 
+                includeHeaders = []
+                for line in headers:
+                    if line.startswith("Access-Control-Request-Headers: "):
+                        line = line.replace("Access-Control-Request-Headers: ","").strip().lower()
+                        if "content-type" in line:
+                            includeHeaders.append("Content-Type")
+                        if "content-length" in line:
+                            includeHeaders.append("Content-Length")
+                        
+                if len(includeHeaders) == 0:
+                    includeHeaders = None
+                
+                print(includeHeaders)
+                return req.sendResponse(False, "OK", headers=includeHeaders)
+            
             if (len(path) == 8 and path == "/control") or (len(path) > 8 and path[:9] == "/control/"):
                 return self._processCommandRequest(req)
             
@@ -149,6 +169,7 @@ class DeviceContainer:
             else:
                 return req.sendResponse(True, "Invalid request", httpStatusCode=404, httpStatusMessage="Not Found")
         except:
+            raise
             req = KJSONRequest(self, conn, None, None)
             return req.sendResponse(True, "invalid request", httpStatusCode=500, httpStatusMessage="Internal Server Error")
     
