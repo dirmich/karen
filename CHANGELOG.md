@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- Watcher device
+- Added Watcher device
 - Trainer for watcher device using haarcascade classifiers
 - Basic Configuration for Video + Audio (basic_config_video.json)
 - Handlers for capturing IMAGE_INPUT
@@ -14,7 +14,9 @@ All notable changes to this project will be documented in this file.
 ### Modified
 
 - karen.start() method to support "video" option
+- Fixed eval issues in startup
 - Updated Raspberry Pi documentation
+- Improved device management via control panel
 
 ## [0.5.5] - 2021-06-19
 
@@ -60,7 +62,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- Multiple daemons [@lnxusr](https://github.com/lnxusr1).
+- Multiple daemons 
 - Basic support for microphone devices (via mozilla.deepspeech)
 - Basic support for camera devices (via opencv2)
 - Web console

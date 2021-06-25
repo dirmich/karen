@@ -1,4 +1,4 @@
-import os, logging, random
+import os, logging, random, time
 from padatious import IntentContainer
 from .shared import dayPart
 
@@ -92,6 +92,11 @@ class SkillManager:
                     return True
             elif ("is your maker" in in_text or "is your father" in in_text) and len(in_text) <= 20:
                 res = self.brain.say("I was designed by lnx user  one in 2020 during the Covid 19 lockdown.")
+                if res:
+                    return True
+            elif ("please power down" in in_text) and len(in_text) <= 20:
+                my_brain = self.brain
+                res = self.brain.ask("Are you sure that you don't need me anymore?", lambda text: True if text.lower() == "yes" and my_brain.say("Your wish is my command.") and my_brain.sendRequestToDevices("control", { "command": "KILL" }) and my_brain.stop() else False, timeout=5)
                 if res:
                     return True
                                         

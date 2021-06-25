@@ -230,13 +230,14 @@ def start(configFile=None, log_level="info", log_file=None):
                         print("Invalid handler specified " + str(command))
                         quit(1)
                     
-                    friendlyName = ", friendlyName=\"" + str(command["friendlyName"]) + "\"" if "friendlyName" in command and command["friendlyName"] is not None else ""
+                    friendlyName = str(command["friendlyName"]) if "friendlyName" in command and command["friendlyName"] is not None else None
+                    enableWebControl = bool(command["enableWebControl"]) if "enableWebControl" in command and command["enableWebControl"] is not None else True
     
                     myImport = _getImport(importedLibs, command["function"])
                     if myImport is not None:
                         exec("import "+str(myImport))
-    
-                    eval("brain.setHandler(\"" + str(command["type"]) + "\", " + str(command["function"]) + friendlyName + ")")
+                    
+                    exec("brain.setHandler(str(command[\"type\"]), eval(str(command[\"function\"])), friendlyName=friendlyName, enableWebControl=enableWebControl)")
     
             if "data" in myConfig["brain"] and isinstance(myConfig["brain"]["data"],list):
                 for command in myConfig["brain"]["data"]:
@@ -244,13 +245,14 @@ def start(configFile=None, log_level="info", log_file=None):
                         print("Invalid handler specified " + str(command))
                         quit(1)
                     
-                    friendlyName = ", friendlyName=\"" + str(command["friendlyName"]) + "\"" if "friendlyName" in command and command["friendlyName"] is not None else ""
+                    friendlyName = str(command["friendlyName"]) if "friendlyName" in command and command["friendlyName"] is not None else None
+                    enableWebControl = bool(command["enableWebControl"]) if "enableWebControl" in command and command["enableWebControl"] is not None else True
     
                     myImport = _getImport(importedLibs, command["function"])
                     if myImport is not None:
                         exec("import "+str(myImport))
     
-                    eval("brain.setDataHandler(\"" + str(command["type"]) + "\", " + str(command["function"]) + friendlyName + ")")
+                    exec("brain.setDataHandler(str(command[\"type\"]), eval(str(command[\"function\"])), friendlyName=friendlyName, enableWebControl=enableWebControl)")
     
             brain.start()
 
@@ -268,7 +270,8 @@ def start(configFile=None, log_level="info", log_file=None):
                     hostname=myConfig["container"]["hostname"] if "hostname" in myConfig["container"] else None,
                     ssl_cert_file=myConfig["container"]["ssl"]["cert_file"] if "ssl" in myConfig["container"] and "cert_file" in myConfig["container"]["ssl"] else None,
                     ssl_key_file=myConfig["container"]["ssl"]["key_file"] if "ssl" in myConfig["container"] and "key_file" in myConfig["container"]["ssl"] else None,
-                    brain_url=brain_url
+                    brain_url=brain_url,
+                    friendlyName=myConfig["container"]["friendlyName"] if "friendlyName" in myConfig["container"] else None
                 )
             
             if "devices" in myConfig["container"] and isinstance(myConfig["container"]["devices"],list):
@@ -284,11 +287,12 @@ def start(configFile=None, log_level="info", log_file=None):
                         exec("import "+str(myImport))
     
                     friendlyName = device["friendlyName"] if "friendlyName" in device else None
+                    id = device["uuid"] if "uuid" in device else None
                     autoStart = device["autoStart"] if "autoStart" in device else True
                     devParams = device["parameters"] if "parameters" in device and isinstance(device["parameters"], dict) else {}
                     newDevice = eval(str(strType) + "(callback=container.callbackHandler, **devParams)")
                     
-                    container.addDevice(device["type"], newDevice, friendlyName=friendlyName, autoStart=autoStart)
+                    container.addDevice(device["type"], newDevice, friendlyName=friendlyName, id=id, autoStart=autoStart)
     
             if "commands" in myConfig["container"] and isinstance(myConfig["container"]["commands"],list):
                 for command in myConfig["container"]["commands"]:
@@ -296,13 +300,11 @@ def start(configFile=None, log_level="info", log_file=None):
                         print("Invalid handler specified " + str(command))
                         quit(1)
                     
-                    friendlyName = ", friendlyName=\"" + str(command["friendlyName"]) + "\"" if "friendlyName" in command and command["friendlyName"] is not None else ""
-    
                     myImport = _getImport(importedLibs, command["function"])
                     if myImport is not None:
                         exec("import "+str(myImport))
     
-                    eval("container.setHandler(\"" + str(command["type"]) + "\", " + str(command["function"]) + friendlyName + ")")
+                    exec("container.setHandler(str(command[\"type\"]), eval(str(command[\"function\"])))")
     
             container.start()
 

@@ -37,7 +37,7 @@ class Brain(object):
         self._socket = None             # Socket object (where the listener lives)
         self._thread = None             # Thread object for TCP Server (Should be non-blocking)
         self._deviceThread = None       # Thread object for device checks (runs every 5 seconds to confirm devices are active)
-        self._isRunning = False         # Flag used to indicate if TCP server should be running
+        self.isRunning = False         # Flag used to indicate if TCP server should be running
         self._threadPool = []           # List of running threads (for incoming TCP requests)
         
         self.skill_manager = SkillManager(self, skill_folder)
@@ -146,7 +146,7 @@ class Brain(object):
 
         """
         
-        self._isRunning = True 
+        self.isRunning = True 
                 
         self._lock.acquire()
 
@@ -164,7 +164,7 @@ class Brain(object):
             
         self._lock.release()
 
-        while self._isRunning:
+        while self.isRunning:
 
             try:
                 # Accept the new connection
@@ -227,11 +227,12 @@ class Brain(object):
         for device in self.clients:
             if device["url"] == client_url:
                 bFound = True
+                device["name"] = jsonRequest.payload["name"] if "name" in jsonRequest.payload else None
                 device["active"] = True
                 device["devices"] = jsonRequest.payload["devices"] if "devices" in jsonRequest.payload else None
         
         if not bFound:
-            self.clients.append({ "url": client_url, "active": True, "devices": jsonRequest.payload["devices"] if "devices" in jsonRequest.payload else None })
+            self.clients.append({ "url": client_url, "active": True, "name": jsonRequest.payload["name"] if "name" in jsonRequest.payload else None, "devices": jsonRequest.payload["devices"] if "devices" in jsonRequest.payload else None })
         
         return jsonRequest.sendResponse(False, "Registered successfully")
             
@@ -313,7 +314,7 @@ class Brain(object):
 
         return True
     
-    def sendRequestToDevices(self, path, payload, inType=None, friendlyName=None):
+    def sendRequestToDevices(self, path, payload, inType=None, inContainer=None, inFilter=None):
         """
         Sends a JSON request to one or more client devices.
         
@@ -321,7 +322,8 @@ class Brain(object):
             path (str):  relative path to call (e.g. "control" or "data").
             payload (object):  Object to be converted to JSON and sent in the body of the request
             inType (str):  The type of device to deliver the request to (e.g. "karen.listener.Listener").  This will limit the request to only clients with the specified type of device attached.  (optional) 
-            friendlyName (str):  The friendly name of the client device (e.g. "living room").  This will limit the request to only clients that a device (of the specified type) with that friendly name.  (optional)
+            inContainer (str): Device URL to send request to. (optional)
+            inFilter (str):  The filter condition.  This value represents either the positional uuid or the friendly name of the device.  (optional)
             
         Returns:
             (bool):  True on success or False on failure.
@@ -339,23 +341,39 @@ class Brain(object):
             if not active:
                 continue
             
-            if inType is not None and (inType not in device["devices"] or device["devices"][inType]["count"] == 0):
+            if inContainer is not None and url != inContainer:
                 continue
             
-            if friendlyName is not None:
+            if inType is not None and (inType not in device["devices"]):
+                continue
+            
+            if inFilter is not None and isinstance(inFilter, str):
                 if inType is not None:
-                    if friendlyName not in device["devices"][inType]["names"]:
-                        continue 
+                    if inType in device["devices"]:
+                        bFound = False
+                        for item in device["devices"][inType]:
+                            if item["name"] == str(inFilter) or item["uuid"] == str(inFilter):
+                                bFound = True 
+                                break 
+                            
+                        if not bFound:
+                            continue # Skip this device container
+                    else:
+                        continue # Skip this device container
                 else:
                     bFound = False
                     for devType in device["devices"]:
-                        if friendlyName in device["devices"][devType]["names"]:
-                            bFound = True
+                        for item in device["devices"][devType]:
+                            if item["name"] == str(inFilter) or item["uuid"] == str(inFilter):
+                                bFound = True 
+                                break 
+                            
+                        if bFound:
                             break
                         
                     if not bFound:
-                        continue
-                    
+                        continue # Skip this device container
+
             tgtPath = urljoin(url, path)
 
             ret, msg = sendJSONRequest(tgtPath, payload)
@@ -506,28 +524,28 @@ class Brain(object):
             (bool):  True on success or False on failure.
         """
         
-        speaker = None
+        speakerId = None 
+        speakerUrl = None
+        
         for item in self.clients:
             if "active" in item and item["active"]:
-                if "devices" in item and "karen.speaker.Speaker" in item["devices"] and item["devices"]["karen.speaker.Speaker"]["count"] > 0:
-                    speaker = item["url"]
-                    break
+                if "devices" in item and "karen.speaker.Speaker" in item["devices"]:
+                    for d in item["devices"]["karen.speaker.Speaker"]:
+                        if d["active"]:
+                            speakerId = d["uuid"]
+                            speakerUrl = item["url"]
+                            break
+
+                    if speakerId is not None:
+                        break
         
-        if speaker is None:
+        if speakerId is None:
             self.logger.warning("SAY: No speaker identified")
             return False
-        
-        for item in self.clients:
-            if "active" in item and item["active"]:
-                if "devices" in item and "karen.listener.Listener" in item["devices"] and item["devices"]["karen.listener.Listener"]["count"] > 0:
-                    sendJSONRequest(urljoin(item["url"],"control"), { "command": "AUDIO_OUT_START" })
 
-        sendJSONRequest(urljoin(speaker,"control"), { "command": "SAY", "data": str(text) })
-
-        for item in self.clients:
-            if "active" in item and item["active"]:
-                if "devices" in item and "karen.listener.Listener" in item["devices"] and item["devices"]["karen.listener.Listener"]["count"] > 0:
-                    sendJSONRequest(urljoin(item["url"],"control"), { "command": "AUDIO_OUT_END" })
+        self.sendRequestToDevices("control", { "command": "AUDIO_OUT_START" }, inType="karen.listener.Listener")
+        self.sendRequestToDevices("control", { "command": "SAY", "data": str(text) }, inContainer=speakerUrl, inType="karen.speaker.Speaker", inFilter=speakerId)
+        self.sendRequestToDevices("control", { "command": "AUDIO_OUT_END" }, inType="karen.listener.Listener")
             
         return True
     
@@ -542,7 +560,7 @@ class Brain(object):
             (bool):  True on success else will raise an exception.
         """
 
-        if self._isRunning:
+        if self.isRunning:
             return True 
 
         self._thread = self._tcpServer()
@@ -567,16 +585,16 @@ class Brain(object):
             (bool):  True on success else will raise an exception.
         """
 
-        #if not self._isRunning:
+        #if not self.isRunning:
         #    return True 
                 
         if seconds > 0:
             self.logger.info("Shutting down in "+str(seconds)+" second(s).")
             for i in range(0,seconds):
-                if self._isRunning:
+                if self.isRunning:
                     time.sleep(1)
             
-            if self._isRunning and self._thread is not None:
+            if self.isRunning and self._thread is not None:
                 self.stop()
         
         
@@ -596,10 +614,10 @@ class Brain(object):
             (bool):  True on success else will raise an exception.
         """
         
-        if not self._isRunning:
+        if not self.isRunning:
             return True 
         
-        self._isRunning = False 
+        self.isRunning = False 
         
         i = len(self._threadPool) - 1
         while i >= 0:

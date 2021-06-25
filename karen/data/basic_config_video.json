@@ -5,6 +5,7 @@
 	},
 	"container": {
 		"start": true,
+		"friendlyName": "living room",
 		"tcp_port": 8081,
 		"hostname": null,
 		"ssl": {
@@ -13,7 +14,8 @@
 		},
 		"devices": [
 			{
-				"friendlyName": "living room",
+				"uuid": null,
+				"friendlyName": "mic1",
 				"type": "karen.listener.Listener",
 				"parameters": {
 					"speechModel": null,
@@ -28,11 +30,13 @@
 				}
 			},
 			{
-				"friendlyName": "living room",
+				"uuid": null,
+				"friendlyName": "speaker1",
 				"type": "karen.speaker.Speaker"
 			},
 			{
-				"friendlyName": "living room",
+				"uuid": null,
+				"friendlyName": "cam1",
 				"type": "karen.watcher.Watcher",
 				"parameters": {
 					"classifierFile": null,
@@ -53,7 +57,9 @@
 			{ "type": "STOP_WATCHER", "function": "karen.handlers.device_handleStartStopWatcherCommand" },
 			{ "type": "AUDIO_OUT_START", "function": "karen.handlers.device_handleAudioOutCommand" },
 			{ "type": "AUDIO_OUT_END", "function": "karen.handlers.device_handleAudioOutCommand" },
-			{ "type": "SAY", "function": "karen.handlers.device_handleSayCommand" }
+			{ "type": "SAY", "function": "karen.handlers.device_handleSayCommand" },
+			{ "type": "START_DEVICE", "function": "karen.handlers.device_handleStartStopCommand" },
+			{ "type": "STOP_DEVICE", "function": "karen.handlers.device_handleStartStopCommand" }
 		]
 	},
 	"brain": {
@@ -71,6 +77,7 @@
 			{ "type": "START_WATCHER", "function": "karen.handlers.brain_handleRelayWatcherCommand" },
 			{ "type": "STOP_WATCHER", "function": "karen.handlers.brain_handleRelayWatcherCommand" },
 			{ "type": "KILL", "function": "karen.handlers.handleKillCommand" },
+			{ "type": "RELAY", "function": "karen.handlers.brain_handleRelayCommand", "enableWebControl": false },
 			{ "type": "KILL_ALL", "function": "karen.handlers.brain_handleKillAllCommand" }
 		],
 		"data": [

@@ -57,7 +57,7 @@ class Watcher():
         elif orientation == 270 or orientation == -90:
             self.orientation = cv2.ROTATE_90_COUNTERCLOCKWISE
         
-        self._isRunning = False
+        self.isRunning = False
         
     @threaded
     def _doCallback(self, inData):
@@ -88,10 +88,12 @@ class Watcher():
         Returns:
             (thread):  The thread created for the watcher while capturing incoming video.
         """
-
+        self.isRunning = True
+        
         if self.classifierFile is None or not os.path.isfile(self.classifierFile):
             self.logger.error("Invalid classifier file specified. Unable to start Watcher.")
             self.classifierFile = None 
+            self.isRunning = False
             return False
         
         classifier = cv2.CascadeClassifier(self.classifierFile)
@@ -102,6 +104,7 @@ class Watcher():
                 self.logger.info("Recognizer file not found.  Will attempt to generate.")
                 if not self.train():
                     self.logger.critical("Unable to start watcher due to failed recognizer build.")
+                    self.isRunning = False
                     return False 
             else:
                 self.logger.warning("Invalid recognizer file and no training source was provided. Named objects will not be detected.")
@@ -119,13 +122,12 @@ class Watcher():
                     if "id" in item and "name" in item:
                         names[item["id"]] = item["name"]
             
-        self._isRunning = True
         isPaused = False 
         
         videoDevice = cv2.VideoCapture(self.videoDeviceIndex)
         threadPool = []
         
-        while self._isRunning:
+        while self.isRunning:
             ret, im = videoDevice.read()
             
             if ret:
@@ -303,10 +305,10 @@ class Watcher():
             (bool):  True on success else will raise an exception.
         """
 
-        if not self._isRunning:
+        if not self.isRunning:
             return True 
 
-        self._isRunning = False
+        self.isRunning = False
         if self.thread is not None:
             self.thread.join()
             
@@ -323,7 +325,7 @@ class Watcher():
         Returns:
             (bool):  True on success else will raise an exception.
         """
-        if self._isRunning:
+        if self.isRunning:
             return True 
         
         self.thread = self._readFromCamera()
@@ -342,7 +344,7 @@ class Watcher():
         Returns:
             (bool):  True on success else will raise an exception.
         """
-        if not self._isRunning:
+        if not self.isRunning:
             return True 
         
         if seconds > 0:

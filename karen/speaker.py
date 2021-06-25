@@ -22,7 +22,7 @@ class Speaker():
         self.callback = callback
         self.logger = logging.getLogger("SPEAKER")
         
-        self._isRunning = False
+        self.isRunning = False
         
     @threaded
     def _doCallback(self, inData):
@@ -73,7 +73,7 @@ class Speaker():
         Returns:
             (bool):  True on success else will raise an exception.
         """
-        
+        self.isRunning = False
         return True
         
     def start(self, useThreads=True):
@@ -86,6 +86,8 @@ class Speaker():
         Returns:
             (bool):  True on success else will raise an exception.
         """
+        self.isRunning = True
+        
         return True
     
     def wait(self, seconds=0):

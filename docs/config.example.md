@@ -8,6 +8,7 @@
 	},
 	"container": {
 		"start": true,
+		"friendlyName": "living room",
 		"tcp_port": 8081,
 		"hostname": null,
 		"ssl": {
@@ -16,7 +17,8 @@
 		},
 		"devices": [
 			{
-				"friendlyName": "living room",
+				"uuid": null,
+				"friendlyName": "mic1",
 				"type": "karen.listener.Listener",
 				"parameters": {
 					"speechModel": null,
@@ -31,7 +33,8 @@
 				}
 			},
 			{
-				"friendlyName": "living room",
+				"uuid": null,
+				"friendlyName": "speaker1",
 				"type": "karen.speaker.Speaker"
 			}
 		],
@@ -57,6 +60,7 @@
 			{ "type": "START_LISTENER", "function": "karen.handlers.brain_handleRelayListenerCommand" },
 			{ "type": "STOP_LISTENER", "function": "karen.handlers.brain_handleRelayListenerCommand" },
 			{ "type": "KILL", "function": "karen.handlers.handleKillCommand" },
+			{ "type": "RELAY", "function": "karen.handlers.brain_handleRelayCommand", "enableWebControl": false },
 			{ "type": "KILL_ALL", "function": "karen.handlers.brain_handleKillAllCommand" }
 		],
 		"data": [
