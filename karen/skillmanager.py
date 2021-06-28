@@ -51,7 +51,7 @@ class SkillManager:
 
         self.logger.debug("Training completed.")
 
-        self.logger.debug("Initialization completed.")
+        self.logger.info("Initialization completed.")
 
         
     def parseInput(self, text):
@@ -104,26 +104,24 @@ class SkillManager:
             return False
 
         try:
+            
+            # This one line explains it all... link incoming command into actionable intent using Padatious library
             intent = self.intentParser.calc_intent(text)
+            
             #print(intent)
             # I need to be at least 60% likely to be correct before I try to process the request.
             if intent.conf >= 0.6:
                 for s in self.skills:
                     if intent.name == s["intent_file"]:
-                        #TODO: What happens if we get an incorrect intent determination?
                         ret_val = s["callback"](intent)
-                        try:
-                            if ret_val["error"] == True:
-                                return audioFallback(text)
-                            else:
-                                return True
-                        except:
-                            # Should we just assume it completed successfully?
-                            return True
+                        if isinstance(ret_val, bool):
+                            return ret_val
+                        else:
+                            return True # Default return is True in case the returned value isn't boolean
             else:
                 return audioFallback(text)
         except Exception as e:
-            self.logger.debug(str(e))
+            self.logger.error(e, exc_info=True)
             return False
 
         return False
@@ -174,7 +172,7 @@ class Skill:
         if self.brain is not None:
             return self.brain.ask(in_text, in_callback, timeout=timeout)
         else:
-            self.logger.debug("BRAIN not referenced")
+            self.logger.error("BRAIN not referenced")
 
         return False
     
@@ -258,11 +256,11 @@ class Skill:
                     self.brain.skill_manager.intentParser.load_file(filename, os.path.join(fldr,"vocab","en_us",filename), reload_cache=True)
                     self.brain.skill_manager.skills.append({ "intent_file": filename, "callback": callback, "object": self })
                 else:
-                    self.logger.debug("BRAIN not referenced")
+                    self.logger.error("BRAIN not referenced")
             else:
-                self.logger.debug("Error registering intent file")
+                self.logger.error("Error registering intent file (" + str(filename) + ")")
         else:
-            self.logger.debug("Intent file not found")
+            self.logger.error("Intent file not found (" + str(filename) + ")")
             return False
         
         return True
@@ -281,7 +279,7 @@ class Skill:
         if self.brain is not None:
             return self.brain.say(in_text)
         else:
-            self.logger.debug("BRAIN not referenced")
+            self.logger.error("BRAIN not referenced")
 
         return False
 

@@ -32,7 +32,7 @@ class TellDateTimeSkill(Skill):
         Primary function for intent matches when a TIME intent is detected.  Called by skill manager.
         
         Args:
-            message (str):  text that triggered the intent
+            message (obj):  text that triggered the intent
             
         Returns:
             (bool): True on success or False on failure

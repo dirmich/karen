@@ -31,7 +31,7 @@ class KnockKnockSkill(Skill):
         Last step in knock knock job (e.g. the last laugh).
         
         Args:
-            message (str): The text triggering this step.
+            message (obj): The text triggering this step.
             
         Returns:
             (bool):  True on success or False on failure
@@ -48,13 +48,13 @@ class KnockKnockSkill(Skill):
         Second step in knock knock job (e.g. "VOICE_PROMPT who?").
         
         Args:
-            message (str): The text triggering this step.
+            message (obj): The text triggering this step.
             
         Returns:
             (bool):  True on success or False on failure
         """
         
-        return self.ask(str(message) + " who?", self.handle_knockknock_q2, timeout=10)
+        return self.ask(str(message.sent) + " who?", self.handle_knockknock_q2, timeout=10)
 
     def handle_knockknock_intent(self, message):
         """

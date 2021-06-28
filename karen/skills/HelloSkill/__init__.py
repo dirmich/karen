@@ -44,7 +44,7 @@ class HelloSkill(Skill):
         Primary function for intent matches.  Called by skill manager.
         
         Args:
-            message (str):  text that triggered the intent
+            message (obj):  text that triggered the intent
             
         Returns:
             (bool): True on success or False on failure
