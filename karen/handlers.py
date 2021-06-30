@@ -34,7 +34,7 @@ def brain_handleAudioInputData(jsonRequest):
         return jsonRequest.sendResponse(True, "Invalid AUDIO_INPUT received.")
     
     jsonRequest.container.logger.info("(" + str(jsonRequest.payload["type"]) + ") " + str(jsonRequest.payload["data"]))
-    jsonRequest.container.addData(jsonRequest.payload["type"], jsonRequest.payload["data"])
+    jsonRequest.container.addData(jsonRequest.payload["type"], jsonRequest.payload["data"], context=jsonRequest.context)
     jsonRequest.sendResponse(message="Data collected successfully.")
     
     # Handle ask function as a drop-out on the audio_input... if it is an inbound function then we go straight back to the skill callout.
@@ -45,7 +45,7 @@ def brain_handleAudioInputData(jsonRequest):
             return True
     
     # Do something
-    jsonRequest.container.skill_manager.parseInput(str(jsonRequest.payload["data"]))
+    jsonRequest.container.skill_manager.parseInput(str(jsonRequest.payload["data"]), context=jsonRequest.context)
     
     return True
 
@@ -64,7 +64,7 @@ def brain_handleImageInputData(jsonRequest):
         return jsonRequest.sendResponse(True, "Invalid IMAGE_INPUT received.")
     
     jsonRequest.container.logger.info("(" + str(jsonRequest.payload["type"]) + ") " + str(jsonRequest.payload["data"]))
-    jsonRequest.container.addData(jsonRequest.payload["type"], jsonRequest.payload["data"])
+    jsonRequest.container.addData(jsonRequest.payload["type"], jsonRequest.payload["data"], context=jsonRequest.context)
     
     return jsonRequest.sendResponse(message="Data collected successfully.")
 

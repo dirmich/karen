@@ -7,8 +7,7 @@ import ssl
 import uuid
 from urllib.parse import urljoin
 
-from .shared import threaded, KHTTPRequestHandler, KJSONRequest, sendJSONRequest
-from pickle import NONE
+from .shared import threaded, KHTTPRequestHandler, KJSONRequest, sendJSONRequest, KContext
 
 class DeviceContainer:
     """
@@ -75,20 +74,21 @@ class DeviceContainer:
             self.my_url = "https://"
         self.my_url = self.my_url + str(self.hostname) + ":" + str(self.tcp_port)
     
-    def _sendRequest(self, path, payLoad):
+    def _sendRequest(self, path, payLoad, context=None):
         """
         Sends a request to the brain
         
         Args:
             path (str):  The path of the request (e.g. "control" or "data").
             payLoad (object):  The object to be converted to JSON and sent in the body of the request.
-            
+            context (KContext): Context surrounding the request. (optional)
+
         Returns:
             (bool):  True on success or False on failure.
         """
         
         url = urljoin(self.brain_url, path)
-        ret, msg = sendJSONRequest(url, payLoad)
+        ret, msg = sendJSONRequest(url, payLoad, context=context)
         return ret
     
     def registerWithBrain(self):
@@ -113,7 +113,7 @@ class DeviceContainer:
             for i, item in enumerate(self.objects[deviceType]):
                 data[deviceType].append({ "uuid": item["uuid"], "active": item["device"].isRunning, "name": item["friendlyName"]})
             
-        result = self._sendRequest("register", { "port": self.tcp_port, "useHttp": self.use_http, "name": self.name, "devices": data })
+        result = self._sendRequest("register", { "port": self.tcp_port, "useHttp": self.use_http, "name": self.name, "devices": data }, context=KContext(clientURL=self.my_url))
         if result:
             self.logger.info("Registration COMPLETE")
         else:
@@ -148,8 +148,13 @@ class DeviceContainer:
             
             self.httplogger.debug("CONTAINER (" + str(address[0]) + ") " + str(r.command) + " " + str(path))
             
-            req = KJSONRequest(self, conn, path, payload)
-
+            #req = KJSONRequest(self, conn, path, payload)
+            req = KJSONRequest(self, conn, path, payload, context=KContext(clientURL=r.headers.get("X-CLIENT-URL"), brainURL=r.headers.get("X-BRAIN-URL")))
+            if req.context.clientURL is None: 
+                req.context.clientURL = self.my_url
+            if req.context.brainURL is None:
+                req.context.brainURL = self.brain_url 
+                
             if r.command == "OPTIONS":
                 print(r.headers) 
                 headers = str(r.headers).split("\n") 
@@ -476,20 +481,21 @@ class DeviceContainer:
         self._handlers[handlerType] = handlerCallback
         return True
     
-    def callbackHandler(self, inType, data):
+    def callbackHandler(self, inType, data, context=None):
         """
         The target of all input/output devices.  Sends collected data to the brain.  Posts request to "/data".
         
         Args:
             inType (str):  The type of data collected (e.g. "AUDIO_INPUT").
             data (object):  The object to be converted to JSON and sent to the brain in the body of the message.
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool):  True on success or False on failure.
         """
         
         jsonData = { "type": inType, "data": data }
-        result = self._sendRequest("/data", jsonData)
+        result = self._sendRequest("/data", jsonData, context=context)
         return result
     
 class Device:

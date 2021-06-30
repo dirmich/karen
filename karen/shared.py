@@ -88,13 +88,14 @@ def sendJSONResponse(socketConn, error=False, message=None, data=None, httpStatu
         
     return sendHTTPResponse(socketConn, responseType="application/json", responseBody=json.dumps(payload), httpStatusCode=httpStatusCode, httpStatusMessage=httpStatusMessage, headers=headers)
 
-def sendJSONRequest(url, payLoad):
+def sendJSONRequest(url, payLoad, context=None):
     """
     Sends a JSON request to a specified URL using the POST method.
     
     Args:
         url (str):  URL for which to delivery the POST message.
         payLoad (object):  Object to be converted to JSON format and sent as the body of the message.
+        context (KContext): Context surrounding the request. (optional)
         
     Returns:
         (bool, str):  Returns a tuple as (bool, str) indicating if the message was successful or failed and any related message.
@@ -107,7 +108,10 @@ def sendJSONRequest(url, payLoad):
     logger = logging.getLogger("HTTP")
     
     try:
-        headers = { "Content-Type": "application/json" }
+        if context is None:
+            context = KContext()
+            
+        headers = { "Content-Type": "application/json", "X-CLIENT-URL": context.clientURL, "X-BRAIN-URL": context.brainURL }
         request_body = json.dumps(payLoad)
         
         res = requests.post(url, data=request_body, headers=headers, verify=False)
@@ -261,7 +265,7 @@ class KJSONRequest:
     Helper class for storing the portions of an inbound JSON request.
     """
     
-    def __init__(self, inContainer, inSocket, inPath, inPayload):
+    def __init__(self, inContainer, inSocket, inPath, inPayload, context=None):
         """
         JSON Request Initialization
         
@@ -270,12 +274,14 @@ class KJSONRequest:
             inSocket (socket): The client socket on which to send any appropriate responses.
             inPath (str): The relative path of the request (e.g. "control").
             inPayload (object): The JSON-parsed payload to store for referencing
+            context (KContext): Context surrounding the request. (optional)
         """
         
         self.container = inContainer
         self.conn = inSocket
         self.path = inPath
         self.payload = inPayload
+        self.context = context
         
     def sendResponse(self, error=False, message="", data=None, httpStatusCode=200, httpStatusMessage="OK", headers=None):
         """
@@ -295,3 +301,42 @@ class KJSONRequest:
         
         ret = sendJSONResponse(socketConn=self.conn, error=error, message=message, data=data, httpStatusCode=httpStatusCode, httpStatusMessage=httpStatusMessage, headers=headers)
         return ret
+    
+class KContext():
+    def __init__(self, clientURL=None, brainURL=None):
+        """
+        Context of the inbound request.
+        
+        Args:
+            clientURL (str):  Client address from which the request was made or None if coming through control panel.            
+            brainURL (str):  Brain address from which the request was processed or None.
+        """
+
+        self.clientURL = clientURL
+        self.brainURL = brainURL
+        
+    def get(self):
+        """
+        Gets the context as a dict
+        """
+        
+        return { "clientURL": self.clientURL, "brainURL": self.brainURL }
+    
+    def load(self, data):
+        """
+        Sets the context from a dict (same format pulled from .get()).
+        
+        Args:
+            data (dict):  The data for the context
+        
+        Returns:
+            (bool):  True on success or False on failure.
+        """
+        
+        if not isinstance(data, dict):
+            return False 
+        
+        self.clientURL = data["clientURL"] if "clientURL" in data else None
+        self.brainURL = data["brainURL"] if "brainURL" in data else None
+        
+        return True

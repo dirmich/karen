@@ -7,7 +7,7 @@ import json
 import os
 from urllib.parse import urljoin
 
-from .shared import threaded, sendHTTPResponse, KHTTPRequestHandler, KJSONRequest, sendJSONRequest
+from .shared import threaded, sendHTTPResponse, KHTTPRequestHandler, KJSONRequest, sendJSONRequest, KContext
 from .skillmanager import SkillManager
 from . import __version__, __app_name__
 
@@ -48,7 +48,7 @@ class Brain(object):
         self._dataCommands = []         # List of the data handler string values for use in the web gui (e.g. "AUDIO_INPUT")
         
         self._data = {}                 # General storage object for inbound data (see Brain.AddData())
-        self.clients = []               # Client Devices each in the form of { "url": "http://", "active": true }
+        self.clients = {}               # Client Devices each in the form of { "url": "http://", "active": true }
         self._handlers = {}             # Command Handlers by their caller e.g. { "KILL": handler_function }
         self._dataHandlers = {}         # Data Handlers by their caller e.g. { "AUDIO_INPUT": handler_function }
         
@@ -103,10 +103,13 @@ class Brain(object):
                 payload = r.parse_POST()
             else:
                 payload = r.parse_GET()
-            
+                
             self.httplogger.debug("BRAIN (" + str(address[0]) + ") " + str(r.command) + " " + str(path))
             
-            req = KJSONRequest(self, conn, path, payload)
+            req = KJSONRequest(self, conn, path, payload, context=KContext(clientURL=r.headers.get("X-CLIENT-URL"), brainURL=r.headers.get("X-BRAIN-URL")))
+            if req.context.brainURL is None:
+                req.context.brainURL = self.my_url 
+
             if (len(path) == 8 and path == "/control") or (len(path) > 8 and path[:9] == "/control/"):
                 return self._processCommandRequest(req)
             
@@ -224,25 +227,26 @@ class Brain(object):
         client_url = client_proto + client_ip + ":" + str(client_port)
         
         bFound = False
-        for device in self.clients:
-            if device["url"] == client_url:
-                bFound = True
-                device["name"] = jsonRequest.payload["name"] if "name" in jsonRequest.payload else None
-                device["active"] = True
-                device["devices"] = jsonRequest.payload["devices"] if "devices" in jsonRequest.payload else None
+        if client_url in self.clients:
+            bFound = True
+            device = self.clients[client_url]
+            device["name"] = jsonRequest.payload["name"] if "name" in jsonRequest.payload else None
+            device["active"] = True
+            device["devices"] = jsonRequest.payload["devices"] if "devices" in jsonRequest.payload else None
         
         if not bFound:
-            self.clients.append({ "url": client_url, "active": True, "name": jsonRequest.payload["name"] if "name" in jsonRequest.payload else None, "devices": jsonRequest.payload["devices"] if "devices" in jsonRequest.payload else None })
+            self.clients[client_url] = { "url": client_url, "active": True, "name": jsonRequest.payload["name"] if "name" in jsonRequest.payload else None, "devices": jsonRequest.payload["devices"] if "devices" in jsonRequest.payload else None }
         
         return jsonRequest.sendResponse(False, "Registered successfully")
             
-    def addData(self, inType, inData):
+    def addData(self, inType, inData, context=None):
         """
         Routine to add data to the brain.  Stores the most recently added 50 items per type.
         
         Args:
             inType (str): The data type under which to save the data
             inData (object):  The data in which to be saved.  The specific type (str, dict, list, etc.) is dependent on the type of data being saved and controlled by the caller.
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool):  True on success else will raise an exception.
@@ -251,7 +255,7 @@ class Brain(object):
         if inType is not None and inType not in self._data:
             self._data[inType] = []
             
-        self._data[inType].insert(0, { "data": inData, "time": time.time() } )
+        self._data[inType].insert(0, { "data": inData, "time": time.time(), "context": context.get() if context is not None else None } )
         if len(self._data[inType]) > 50:
             self._data[inType].pop()
             
@@ -314,7 +318,7 @@ class Brain(object):
 
         return True
     
-    def sendRequestToDevices(self, path, payload, inType=None, inContainer=None, inFilter=None):
+    def sendRequestToDevices(self, path, payload, inType=None, inContainer=None, inFilter=None, context=None):
         """
         Sends a JSON request to one or more client devices.
         
@@ -331,11 +335,12 @@ class Brain(object):
         
         ret = True 
         
-        for device in self.clients:
+        for url in self.clients:
             
-            url = device["url"] if "url" in device else None
             if url is None:
                 continue
+            
+            device = self.clients[url] 
             
             active = device["active"] if "active" in device else False
             if not active:
@@ -376,7 +381,13 @@ class Brain(object):
 
             tgtPath = urljoin(url, path)
 
-            ret, msg = sendJSONRequest(tgtPath, payload)
+            if context is None:
+                context = KContext(brainURL=self.my_url)
+            else:
+                if context.brainURL is None:
+                    context.brainURL = self.my_url
+                
+            ret, msg = sendJSONRequest(tgtPath, payload, context=context)
             if not ret:
                 self.logger.error("Request failed to " + tgtPath)
                 self.logger.debug(json.dumps(payload))
@@ -495,7 +506,7 @@ class Brain(object):
         else:
             return jsonRequest.sendResponse(True, "Invalid command.")
     
-    def ask(self, in_text, in_callback=None, timeout=0):
+    def ask(self, in_text, in_callback=None, timeout=0, context=None):
         """
         Method to create a action/response/reaction via voice interactions.
         
@@ -503,22 +514,24 @@ class Brain(object):
             in_text (str):  The message to send to the speaker.
             in_callback (function):  The function to call when a response is received.
             timeout (int):  Number of seconds to wait on a response
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool):  True on success else will raise an exception.
         """
         
-        ret = self.say(in_text)
+        ret = self.say(in_text, context=context)
         if in_callback is not None:
             self._callbacks["ask"] = { "function": in_callback, "timeout": timeout, "expires": time.time()+timeout }
         return True 
     
-    def say(self, text):
+    def say(self, text, context=None):
         """
         Method to send a message to the speaker to be spoken audibly.
         
         Args:
             text (str):  The message to send to the speaker.
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool):  True on success or False on failure.
@@ -527,7 +540,9 @@ class Brain(object):
         speakerId = None 
         speakerUrl = None
         
-        for item in self.clients:
+        for url in self.clients:
+            item = self.clients[url]
+            
             if "active" in item and item["active"]:
                 if "devices" in item and "karen.speaker.Speaker" in item["devices"]:
                     for d in item["devices"]["karen.speaker.Speaker"]:

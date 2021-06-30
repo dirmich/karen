@@ -207,8 +207,9 @@
 					return;
 				}
 				
-				$(data["data"]).each(function(i,o) {
+				$(Object.keys(data["data"])).each(function(i,k) {
 					try {
+						o = data["data"][k];
 						url = o["url"];
 						if (url.substring(0,5).toLowerCase() == "http:") {
 							ssl = "No";

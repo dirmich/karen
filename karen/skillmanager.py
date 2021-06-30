@@ -54,12 +54,13 @@ class SkillManager:
         self.logger.info("Initialization completed.")
 
         
-    def parseInput(self, text):
+    def parseInput(self, text, context=None):
         """
         Parses inbound text leveraging skills and fallbacks to produce a response if possible.
         
         Args:
             text (str):  Input text to process for intent.
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool):  True on success and False on failure.
@@ -113,7 +114,7 @@ class SkillManager:
             if intent.conf >= 0.6:
                 for s in self.skills:
                     if intent.name == s["intent_file"]:
-                        ret_val = s["callback"](intent)
+                        ret_val = s["callback"](intent, context)
                         if isinstance(ret_val, bool):
                             return ret_val
                         else:
@@ -156,7 +157,7 @@ class Skill:
         self._name = "Learned Skill"
         self.brain = None 
     
-    def ask(self, in_text, in_callback, timeout=0):
+    def ask(self, in_text, in_callback, timeout=0, context=None):
         """
         Encapsulates the frequently used function of "ask" in order to make it easier for new skill development.  Makes self.ask() method available.
         
@@ -164,13 +165,14 @@ class Skill:
             in_text (str): The text to speak to start the question/answer phase.
             in_callback (function):  The function to call when the subject responds.
             timeout (int):  The length of time to wait for a response before giving up.  A value of zero will wait forever.
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool): True on success and False on failure.
         """
 
         if self.brain is not None:
-            return self.brain.ask(in_text, in_callback, timeout=timeout)
+            return self.brain.ask(in_text, in_callback, timeout=timeout, context=context)
         else:
             self.logger.error("BRAIN not referenced")
 
@@ -265,19 +267,20 @@ class Skill:
         
         return True
     
-    def say(self, in_text):
+    def say(self, in_text, context=None):
         """
         Encapsulates the frequently used function of "say" in order to make it easier for new skill development.  Makes self.say() method available.
         
         Args:
             in_text (str): The text to speak to start the question/answer phase.
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool): True on success and False on failure.
         """
 
         if self.brain is not None:
-            return self.brain.say(in_text)
+            return self.brain.say(in_text, context=context)
         else:
             self.logger.error("BRAIN not referenced")
 
