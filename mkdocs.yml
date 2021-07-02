@@ -24,7 +24,6 @@ nav:
     - Devices:
       - karen.listener.Listener: 'karen.listener.md'
       - karen.speaker.Speaker: 'karen.speaker.md'
-      - karen.watcher.Watcher: 'karen.watcher.md'
     - Functions:
       - Skill Manager: 'karen.skillmanager.md'
       - Shared Library: 'karen.shared.md'
