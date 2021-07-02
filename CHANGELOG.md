@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.6.0] 
+## [0.6.0] - 2021-07-02
 
 ### Added
 
@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - Trainer for watcher device using haarcascade classifiers
 - Basic Configuration for Video + Audio (basic_config_video.json)
 - Handlers for capturing IMAGE_INPUT
+- Context object for handlers and devices
 
 ### Modified
 

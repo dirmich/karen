@@ -15,12 +15,15 @@ sudo apt-get install \
   libfann2 \
   python3-fann2 \
   libportaudio2 \
-  libasound2-dev
+  libasound2-dev \
+  libatlas-base-dev \
+  cmake
 ```
 
 ```
 pip3 install karen
 ```
+__NOTE:__ The installation of OpenCV is automatically triggered when you install Karen and this may take a while on the Raspberry Pi OS (buster) as it has to recompile some of the libraries.  Patience is required here as the spinner icon appeared to get stuck several times in our tests... but just let it run until it completes.  If it encounters a problem then it'll print out the error for more troubleshooting.
 
 Once installed you can create a new instance of Karen using a [configuration file](config.overview.md) with the following:
 

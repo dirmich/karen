@@ -14,7 +14,8 @@ sudo apt-get install \
   libfann2 \
   python3-fann2 \
   libportaudio2 \
-  libasound2-dev
+  libasound2-dev \
+  cmake
 ```
 
 ### Install with PIP (Recommended)
