@@ -26,12 +26,13 @@ class KnockKnockSkill(Skill):
         self.register_intent_file("knockknock.intent", self.handle_knockknock_intent)
         return True
 
-    def handle_knockknock_q2(self, message):
+    def handle_knockknock_q2(self, message, context=None):
         """
         Last step in knock knock job (e.g. the last laugh).
         
         Args:
             message (str): The text triggering this step.
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool):  True on success or False on failure
@@ -43,12 +44,13 @@ class KnockKnockSkill(Skill):
         else:
             return self.say("ha ha ha.")
         
-    def handle_knockknock_q1(self, message):
+    def handle_knockknock_q1(self, message, context=None):
         """
         Second step in knock knock job (e.g. "VOICE_PROMPT who?").
         
         Args:
             message (str): The text triggering this step.
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool):  True on success or False on failure
@@ -56,12 +58,13 @@ class KnockKnockSkill(Skill):
         
         return self.ask(str(message) + " who?", self.handle_knockknock_q2, timeout=10)
 
-    def handle_knockknock_intent(self, message):
+    def handle_knockknock_intent(self, message, context=None):
         """
         Primary function for intent matches.  Called by skill manager.
         
         Args:
             message (str):  text that triggered the intent
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool): True on success or False on failure

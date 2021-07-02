@@ -1,11 +1,16 @@
-include basic_config.json
+global-exclude *.py[cod]
+exclude karen/data/models/watcher/names.json
+exclude karen.data/models/watcher/recognizer.yml
 include CHANGELOG.md
 include README.md
 include run.py
 include run.sh
+include train.py
 include requirements.txt
-recursive-include karen/data *.json
+include karen/data/basic_config.json
+include karen/data/basic_config_video.json
 recursive-include karen/data/models *.sh
+recursive-include karen/data/models/watcher *.xml
 recursive-include karen/web *.*
 recursive-include karen/skills *.py
 recursive-include karen/skills *.intent

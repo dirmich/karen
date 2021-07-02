@@ -27,12 +27,13 @@ class TellDateTimeSkill(Skill):
         self.register_intent_file("telldate.intent", self.handle_telldate_intent)
         return True
 
-    def handle_telltime_intent(self, message):
+    def handle_telltime_intent(self, message, context=None):
         """
         Primary function for intent matches when a TIME intent is detected.  Called by skill manager.
         
         Args:
-            message (str):  text that triggered the intent
+            message (obj):  text that triggered the intent
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool): True on success or False on failure
@@ -52,12 +53,13 @@ class TellDateTimeSkill(Skill):
                     
         return False
     
-    def handle_telldate_intent(self, message):
+    def handle_telldate_intent(self, message, context=None):
         """
         Primary function for intent matches when a DATE intent is detected.  Called by skill manager.
         
         Args:
             message (str):  text that triggered the intent
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool): True on success or False on failure

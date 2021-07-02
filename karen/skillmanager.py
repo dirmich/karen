@@ -1,4 +1,4 @@
-import os, logging, random
+import os, logging, random, time
 from padatious import IntentContainer
 from .shared import dayPart
 
@@ -51,15 +51,16 @@ class SkillManager:
 
         self.logger.debug("Training completed.")
 
-        self.logger.debug("Initialization completed.")
+        self.logger.info("Initialization completed.")
 
         
-    def parseInput(self, text):
+    def parseInput(self, text, context=None):
         """
         Parses inbound text leveraging skills and fallbacks to produce a response if possible.
         
         Args:
             text (str):  Input text to process for intent.
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool):  True on success and False on failure.
@@ -94,31 +95,34 @@ class SkillManager:
                 res = self.brain.say("I was designed by lnx user  one in 2020 during the Covid 19 lockdown.")
                 if res:
                     return True
+            elif ("please power down" in in_text) and len(in_text) <= 20:
+                my_brain = self.brain
+                res = self.brain.ask("Are you sure that you don't need me anymore?", lambda text: True if text.lower() == "yes" and my_brain.say("Your wish is my command.") and my_brain.sendRequestToDevices("control", { "command": "KILL" }) and my_brain.stop() else False, timeout=5)
+                if res:
+                    return True
                                         
             self.logger.debug("fallback: " + in_text)
             return False
 
         try:
+            
+            # This one line explains it all... link incoming command into actionable intent using Padatious library
             intent = self.intentParser.calc_intent(text)
+            
             #print(intent)
             # I need to be at least 60% likely to be correct before I try to process the request.
             if intent.conf >= 0.6:
                 for s in self.skills:
                     if intent.name == s["intent_file"]:
-                        #TODO: What happens if we get an incorrect intent determination?
-                        ret_val = s["callback"](intent)
-                        try:
-                            if ret_val["error"] == True:
-                                return audioFallback(text)
-                            else:
-                                return True
-                        except:
-                            # Should we just assume it completed successfully?
-                            return True
+                        ret_val = s["callback"](intent, context)
+                        if isinstance(ret_val, bool):
+                            return ret_val
+                        else:
+                            return True # Default return is True in case the returned value isn't boolean
             else:
                 return audioFallback(text)
         except Exception as e:
-            self.logger.debug(str(e))
+            self.logger.error(e, exc_info=True)
             return False
 
         return False
@@ -153,7 +157,7 @@ class Skill:
         self._name = "Learned Skill"
         self.brain = None 
     
-    def ask(self, in_text, in_callback, timeout=0):
+    def ask(self, in_text, in_callback, timeout=0, context=None):
         """
         Encapsulates the frequently used function of "ask" in order to make it easier for new skill development.  Makes self.ask() method available.
         
@@ -161,15 +165,16 @@ class Skill:
             in_text (str): The text to speak to start the question/answer phase.
             in_callback (function):  The function to call when the subject responds.
             timeout (int):  The length of time to wait for a response before giving up.  A value of zero will wait forever.
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool): True on success and False on failure.
         """
 
         if self.brain is not None:
-            return self.brain.ask(in_text, in_callback, timeout=timeout)
+            return self.brain.ask(in_text, in_callback, timeout=timeout, context=context)
         else:
-            self.logger.debug("BRAIN not referenced")
+            self.logger.error("BRAIN not referenced")
 
         return False
     
@@ -253,30 +258,31 @@ class Skill:
                     self.brain.skill_manager.intentParser.load_file(filename, os.path.join(fldr,"vocab","en_us",filename), reload_cache=True)
                     self.brain.skill_manager.skills.append({ "intent_file": filename, "callback": callback, "object": self })
                 else:
-                    self.logger.debug("BRAIN not referenced")
+                    self.logger.error("BRAIN not referenced")
             else:
-                self.logger.debug("Error registering intent file")
+                self.logger.error("Error registering intent file (" + str(filename) + ")")
         else:
-            self.logger.debug("Intent file not found")
+            self.logger.error("Intent file not found (" + str(filename) + ")")
             return False
         
         return True
     
-    def say(self, in_text):
+    def say(self, in_text, context=None):
         """
         Encapsulates the frequently used function of "say" in order to make it easier for new skill development.  Makes self.say() method available.
         
         Args:
             in_text (str): The text to speak to start the question/answer phase.
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool): True on success and False on failure.
         """
 
         if self.brain is not None:
-            return self.brain.say(in_text)
+            return self.brain.say(in_text, context=context)
         else:
-            self.logger.debug("BRAIN not referenced")
+            self.logger.error("BRAIN not referenced")
 
         return False
 

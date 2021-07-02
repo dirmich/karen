@@ -13,7 +13,7 @@ import json
 sys.path.insert(0,os.path.join(os.path.abspath(os.path.dirname(__file__)), "skills"))
 
 # version as tuple for simple comparisons 
-VERSION = (0, 5, 5) 
+VERSION = (0, 6, 0) 
 # string created from tuple to avoid inconsistency 
 __version__ = ".".join([str(x) for x in VERSION])
 __app_name__ = "Project Karen"
@@ -139,8 +139,10 @@ def start(configFile=None, log_level="info", log_file=None):
         log_file (str):  Path and Name of the log file to create (otherwise prints all messages to stderr). (optional)
     """
     
-    if configFile is None:
+    if configFile is None or str(configFile).lower() == "audio":
         configFile = os.path.abspath(os.path.join(os.path.dirname(__file__),"data","basic_config.json"))
+    elif str(configFile).lower() == "video":
+        configFile = os.path.abspath(os.path.join(os.path.dirname(__file__),"data","basic_config_video.json"))
     
     configFile = os.path.abspath(configFile)
     if not os.path.isfile(configFile):
@@ -169,8 +171,8 @@ def start(configFile=None, log_level="info", log_file=None):
     logging.basicConfig(datefmt='%Y-%m-%d %H:%M:%S %z', filename=log_file, format='%(asctime)s %(name)-12s - %(levelname)-9s - %(message)s', level=logging.DEBUG)
     
     # Loggers we don't control
-    logging.getLogger("requests").setLevel(logging_level)
-    logging.getLogger("urllib3").setLevel(logging_level)
+    logging.getLogger("requests").setLevel(logging.INFO)
+    logging.getLogger("urllib3").setLevel(logging.INFO)
     
     # Loggers that are built into Karen
     logging.getLogger("CTYPES").setLevel(logging_level)
@@ -179,6 +181,7 @@ def start(configFile=None, log_level="info", log_file=None):
     logging.getLogger("LISTENER").setLevel(logging_level)
     logging.getLogger("BRAIN").setLevel(logging_level)
     logging.getLogger("SKILLMANAGER").setLevel(logging_level)
+    logging.getLogger("WATCHER").setLevel(logging_level)
 
     # Process configuration file and start engines as appropriate.
     brain = None
@@ -227,13 +230,14 @@ def start(configFile=None, log_level="info", log_file=None):
                         print("Invalid handler specified " + str(command))
                         quit(1)
                     
-                    friendlyName = ", friendlyName=\"" + str(command["friendlyName"]) + "\"" if "friendlyName" in command and command["friendlyName"] is not None else ""
+                    friendlyName = str(command["friendlyName"]) if "friendlyName" in command and command["friendlyName"] is not None else None
+                    enableWebControl = bool(command["enableWebControl"]) if "enableWebControl" in command and command["enableWebControl"] is not None else True
     
                     myImport = _getImport(importedLibs, command["function"])
                     if myImport is not None:
                         exec("import "+str(myImport))
-    
-                    eval("brain.setHandler(\"" + str(command["type"]) + "\", " + str(command["function"]) + friendlyName + ")")
+                    
+                    exec("brain.setHandler(str(command[\"type\"]), eval(str(command[\"function\"])), friendlyName=friendlyName, enableWebControl=enableWebControl)")
     
             if "data" in myConfig["brain"] and isinstance(myConfig["brain"]["data"],list):
                 for command in myConfig["brain"]["data"]:
@@ -241,13 +245,14 @@ def start(configFile=None, log_level="info", log_file=None):
                         print("Invalid handler specified " + str(command))
                         quit(1)
                     
-                    friendlyName = ", friendlyName=\"" + str(command["friendlyName"]) + "\"" if "friendlyName" in command and command["friendlyName"] is not None else ""
+                    friendlyName = str(command["friendlyName"]) if "friendlyName" in command and command["friendlyName"] is not None else None
+                    enableWebControl = bool(command["enableWebControl"]) if "enableWebControl" in command and command["enableWebControl"] is not None else True
     
                     myImport = _getImport(importedLibs, command["function"])
                     if myImport is not None:
                         exec("import "+str(myImport))
     
-                    eval("brain.setDataHandler(\"" + str(command["type"]) + "\", " + str(command["function"]) + friendlyName + ")")
+                    exec("brain.setDataHandler(str(command[\"type\"]), eval(str(command[\"function\"])), friendlyName=friendlyName, enableWebControl=enableWebControl)")
     
             brain.start()
 
@@ -265,7 +270,8 @@ def start(configFile=None, log_level="info", log_file=None):
                     hostname=myConfig["container"]["hostname"] if "hostname" in myConfig["container"] else None,
                     ssl_cert_file=myConfig["container"]["ssl"]["cert_file"] if "ssl" in myConfig["container"] and "cert_file" in myConfig["container"]["ssl"] else None,
                     ssl_key_file=myConfig["container"]["ssl"]["key_file"] if "ssl" in myConfig["container"] and "key_file" in myConfig["container"]["ssl"] else None,
-                    brain_url=brain_url
+                    brain_url=brain_url,
+                    friendlyName=myConfig["container"]["friendlyName"] if "friendlyName" in myConfig["container"] else None
                 )
             
             if "devices" in myConfig["container"] and isinstance(myConfig["container"]["devices"],list):
@@ -281,11 +287,12 @@ def start(configFile=None, log_level="info", log_file=None):
                         exec("import "+str(myImport))
     
                     friendlyName = device["friendlyName"] if "friendlyName" in device else None
+                    id = device["uuid"] if "uuid" in device else None
                     autoStart = device["autoStart"] if "autoStart" in device else True
                     devParams = device["parameters"] if "parameters" in device and isinstance(device["parameters"], dict) else {}
                     newDevice = eval(str(strType) + "(callback=container.callbackHandler, **devParams)")
                     
-                    container.addDevice(device["type"], newDevice, friendlyName=friendlyName, autoStart=autoStart)
+                    container.addDevice(device["type"], newDevice, friendlyName=friendlyName, id=id, autoStart=autoStart)
     
             if "commands" in myConfig["container"] and isinstance(myConfig["container"]["commands"],list):
                 for command in myConfig["container"]["commands"]:
@@ -293,13 +300,11 @@ def start(configFile=None, log_level="info", log_file=None):
                         print("Invalid handler specified " + str(command))
                         quit(1)
                     
-                    friendlyName = ", friendlyName=\"" + str(command["friendlyName"]) + "\"" if "friendlyName" in command and command["friendlyName"] is not None else ""
-    
                     myImport = _getImport(importedLibs, command["function"])
                     if myImport is not None:
                         exec("import "+str(myImport))
     
-                    eval("container.setHandler(\"" + str(command["type"]) + "\", " + str(command["function"]) + friendlyName + ")")
+                    exec("container.setHandler(str(command[\"type\"]), eval(str(command[\"function\"])))")
     
             container.start()
 

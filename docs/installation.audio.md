@@ -2,6 +2,8 @@
 
 Regardless of what operating system or device you're using there will likely be some gremlins in the audio setup.  This page exists to help you troubleshoot those items.
 
+To use the information on this page is primarily focused at folks using __PulseAudio__ as their sound engine.
+
 ## Listing Audio Devices by Device ID
 Inevitably you are going to need to know your device IDs for your input and output devices.  The good news is that it is relatively simple _once Pulse Audio is installed_.  Here are the commands.
 ```

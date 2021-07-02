@@ -170,11 +170,11 @@ class Listener():
         
         self.stream = None
         self.thread = None
-        self._isRunning = False 
+        self.isRunning = False 
         self._isAudioOut = False 
         
     @threaded
-    def _doCallback(self, text):
+    def _doCallback(self, inData):
         """
         Calls the specified callback as a thread to keep from blocking audio device listening
 
@@ -187,7 +187,7 @@ class Listener():
 
         try:
             if self.callback is not None:
-                self.callback("AUDIO_INPUT", text)
+                self.callback("AUDIO_INPUT", inData)
         except:
             pass
         
@@ -203,7 +203,7 @@ class Listener():
         """
     
         buffer_queue = queue.Queue()    # Buffer queue for incoming frames of audio
-        self._isRunning = True   # Reset to True to insure we can successfully start
+        self.isRunning = True   # Reset to True to insure we can successfully start
     
         def proxy_callback(in_data, frame_count, time_info, status):
             """Callback for the audio capture which adds the incoming audio frames to the buffer queue"""
@@ -259,7 +259,7 @@ class Listener():
         self.logger.info("Started")
         
         # We will loop looking for incoming audio until the KILL_SWITCH is set to True
-        while self._isRunning == True:
+        while self.isRunning == True:
     
             # Get current data in buffer as an audio frame
             frame = buffer_queue.get()
@@ -334,7 +334,7 @@ class Listener():
                         text = str(stream_context.finishStream())
     
                         # We've completed the hard part.  Now let's just clean up.
-                        if self._isRunning == True:
+                        if self.isRunning == True:
                             
                             # We'll only process if the text if there is a real value AND we're not already processing something.
                             # We don't block the processing of incoming audio though, we just ignore it if we're processing data.
@@ -360,13 +360,12 @@ class Listener():
             (bool):  True on success else will raise an exception.
         """
 
-        if not self._isRunning:
+        if not self.isRunning:
             return True 
 
-        self._isRunning = False
+        self.isRunning = False
         if self.thread is not None:
-            if not self.wait():
-                return False 
+            self.thread.join()
             
         self.logger.info("Stopped")
         return True
@@ -381,7 +380,7 @@ class Listener():
         Returns:
             (bool):  True on success else will raise an exception.
         """
-        if self._isRunning:
+        if self.isRunning:
             return True 
         
         self.thread = self._readFromMic()
@@ -401,7 +400,7 @@ class Listener():
             (bool):  True on success else will raise an exception.
         """
         
-        if not self._isRunning:
+        if not self.isRunning:
             return True 
         
         if seconds > 0:

@@ -62,7 +62,7 @@ def threaded(fn):
 
     return wrapper
 
-def sendJSONResponse(socketConn, error=False, message=None, data=None, httpStatusCode=200, httpStatusMessage="OK"):
+def sendJSONResponse(socketConn, error=False, message=None, data=None, httpStatusCode=200, httpStatusMessage="OK", headers=None):
     """
     Sends a JSON package as an HTTP response to an open socket connection.  Sends all data as "application/json".
     
@@ -73,6 +73,8 @@ def sendJSONResponse(socketConn, error=False, message=None, data=None, httpStatu
         data (str):  The data portion of the payload to be sent e.g. { error: False, message: "", data: None }.
         httpStatusCode (int):  HTTP status code of response.  Default is 200.
         httpStatusMessage (str):  HTTP status response of response.  Default is "OK".
+        headers (list): HTTP Headers to include in result. (optional)
+        
 
     Returns:
         (bool): True on success and False on failure.
@@ -84,15 +86,16 @@ def sendJSONResponse(socketConn, error=False, message=None, data=None, httpStatu
     if data is not None:
         payload["data"] = data 
         
-    return sendHTTPResponse(socketConn, responseType="application/json", responseBody=json.dumps(payload), httpStatusCode=httpStatusCode, httpStatusMessage=httpStatusMessage)
+    return sendHTTPResponse(socketConn, responseType="application/json", responseBody=json.dumps(payload), httpStatusCode=httpStatusCode, httpStatusMessage=httpStatusMessage, headers=headers)
 
-def sendJSONRequest(url, payLoad):
+def sendJSONRequest(url, payLoad, context=None):
     """
     Sends a JSON request to a specified URL using the POST method.
     
     Args:
         url (str):  URL for which to delivery the POST message.
         payLoad (object):  Object to be converted to JSON format and sent as the body of the message.
+        context (KContext): Context surrounding the request. (optional)
         
     Returns:
         (bool, str):  Returns a tuple as (bool, str) indicating if the message was successful or failed and any related message.
@@ -105,7 +108,10 @@ def sendJSONRequest(url, payLoad):
     logger = logging.getLogger("HTTP")
     
     try:
-        headers = { "Content-Type": "application/json" }
+        if context is None:
+            context = KContext()
+            
+        headers = { "Content-Type": "application/json", "X-CLIENT-URL": context.clientURL, "X-BRAIN-URL": context.brainURL }
         request_body = json.dumps(payLoad)
         
         res = requests.post(url, data=request_body, headers=headers, verify=False)
@@ -135,7 +141,7 @@ def sendJSONRequest(url, payLoad):
 
     return False, "An error occurred in the HTTP request"
 
-def sendHTTPResponse(socketConn, responseType="text/html", responseBody="", httpStatusCode=200, httpStatusMessage="OK"):
+def sendHTTPResponse(socketConn, responseType="text/html", responseBody="", httpStatusCode=200, httpStatusMessage="OK", headers=None):
     """
     Sends a HTTP response to an open socket connection.
     
@@ -145,6 +151,7 @@ def sendHTTPResponse(socketConn, responseType="text/html", responseBody="", http
         responseBody (str):  The body of the response message.
         httpStatusCode (int):  HTTP status code of response.  Default is 200.
         httpStatusMessage (str):  HTTP status response of response.  Default is "OK".
+        headers (list): HTTP Headers to include in result. (optional)
 
     Returns:
         (bool): True on success and False on failure.
@@ -156,10 +163,21 @@ def sendHTTPResponse(socketConn, responseType="text/html", responseBody="", http
         response_type = responseType
         response_body = responseBody
     
-            
-        response_text = "HTTP/1.1 "+response_status+"\nDate: "+time.strftime("%a, %d %b %Y %H:%M:%S %Z")+"\nContent-Type: "+response_type+"\nAccess-Control-Allow-Origin: *\nContent-Length: "+str(len(response_body)) + "\n\n"
-        socketConn.send(response_text.encode())
-        socketConn.send(response_body.encode())
+        response_headers = [
+                "HTTP/1.1 " + response_status,
+                "Date: "+time.strftime("%a, %d %b %Y %H:%M:%S %Z"),
+                "Access-Control-Allow-Origin: *"
+            ]
+        
+        
+        if headers is None or "Content-Type" in headers:
+            response_headers.append("Content-Type: "+response_type)
+        
+        if headers is None or "Content-Length" in headers:
+            response_headers.append("Content-Length: "+str(len(response_body)))
+        
+        response_text = "\n".join(response_headers) + "\n\n"
+        socketConn.send(response_text.encode() + response_body.encode())
     
         socketConn.shutdown(socket.SHUT_RDWR)
         socketConn.close()
@@ -247,7 +265,7 @@ class KJSONRequest:
     Helper class for storing the portions of an inbound JSON request.
     """
     
-    def __init__(self, inContainer, inSocket, inPath, inPayload):
+    def __init__(self, inContainer, inSocket, inPath, inPayload, context=None):
         """
         JSON Request Initialization
         
@@ -256,14 +274,16 @@ class KJSONRequest:
             inSocket (socket): The client socket on which to send any appropriate responses.
             inPath (str): The relative path of the request (e.g. "control").
             inPayload (object): The JSON-parsed payload to store for referencing
+            context (KContext): Context surrounding the request. (optional)
         """
         
         self.container = inContainer
         self.conn = inSocket
         self.path = inPath
         self.payload = inPayload
+        self.context = context
         
-    def sendResponse(self, error=False, message="", data=None, httpStatusCode=200, httpStatusMessage="OK"):
+    def sendResponse(self, error=False, message="", data=None, httpStatusCode=200, httpStatusMessage="OK", headers=None):
         """
         Sends an HTTP response to the requesting client to close the connection.
         
@@ -273,10 +293,50 @@ class KJSONRequest:
             data (str):  The data portion of the payload to be sent e.g. { error: False, message: "", data: None }.
             httpStatusCode (int):  HTTP status code of response.  Default is 200.
             httpStatusMessage (str):  HTTP status response of response.  Default is "OK".
+            headers (list): HTTP Headers to include in result. (optional)
             
         Returns:
             (bool):  True on success and False on failure.
         """
         
-        ret = sendJSONResponse(socketConn=self.conn, error=error, message=message, data=data, httpStatusCode=httpStatusCode, httpStatusMessage=httpStatusMessage)
+        ret = sendJSONResponse(socketConn=self.conn, error=error, message=message, data=data, httpStatusCode=httpStatusCode, httpStatusMessage=httpStatusMessage, headers=headers)
         return ret
+    
+class KContext():
+    def __init__(self, clientURL=None, brainURL=None):
+        """
+        Context of the inbound request.
+        
+        Args:
+            clientURL (str):  Client address from which the request was made or None if coming through control panel.            
+            brainURL (str):  Brain address from which the request was processed or None.
+        """
+
+        self.clientURL = clientURL
+        self.brainURL = brainURL
+        
+    def get(self):
+        """
+        Gets the context as a dict
+        """
+        
+        return { "clientURL": self.clientURL, "brainURL": self.brainURL }
+    
+    def load(self, data):
+        """
+        Sets the context from a dict (same format pulled from .get()).
+        
+        Args:
+            data (dict):  The data for the context
+        
+        Returns:
+            (bool):  True on success or False on failure.
+        """
+        
+        if not isinstance(data, dict):
+            return False 
+        
+        self.clientURL = data["clientURL"] if "clientURL" in data else None
+        self.brainURL = data["brainURL"] if "brainURL" in data else None
+        
+        return True

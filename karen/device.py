@@ -4,9 +4,10 @@ import time
 import os
 import socket 
 import ssl
+import uuid
 from urllib.parse import urljoin
 
-from .shared import threaded, KHTTPRequestHandler, KJSONRequest, sendJSONRequest
+from .shared import threaded, KHTTPRequestHandler, KJSONRequest, sendJSONRequest, KContext
 
 class DeviceContainer:
     """
@@ -17,7 +18,7 @@ class DeviceContainer:
     This minimizes the overhead on the device to send its collected content to the brain.
     """
     
-    def __init__(self, tcp_port=8081, hostname="localhost", ssl_cert_file=None, ssl_key_file=None, brain_url="http://localhost:8080"):
+    def __init__(self, tcp_port=8081, hostname="localhost", ssl_cert_file=None, ssl_key_file=None, brain_url="http://localhost:8080", friendlyName=None):
         """
         Device Container Initialization
         
@@ -27,6 +28,7 @@ class DeviceContainer:
             ssl_cert_file (str): The path and file name of the SSL certificate (.crt) for secure communications
             ssl_key_file (str): The path and file name of the SSL private key (.key or .pem) for secure communications
             brain_url (str):  The URL of the brain device.
+            friendlyName (str): The user-defined named for this device (a.k.a. "living room"). (optional)
         
         Both the ssl_cert_file and ssl_key_file must be present in order for SSL to be leveraged.
         """
@@ -35,7 +37,7 @@ class DeviceContainer:
         self._socket = None             # Socket object (where the listener lives)
         self._thread = None             # Thread object for TCP Server (Should be non-blocking)
         self._deviceThread = None       # Thread object for device checks (runs every 5 seconds to confirm devices are active)
-        self._isRunning = False         # Flag used to indicate if TCP server should be running
+        self.isRunning = False         # Flag used to indicate if TCP server should be running
         self._threadPool = []           # List of running threads (for incoming TCP requests)
         
         self._handlers = {}             # Handlers to be called for incoming command requests (e.g. { "KILL": kill_function }
@@ -44,6 +46,8 @@ class DeviceContainer:
         
         self.logger = logging.getLogger("CONTAINER")
         self.httplogger = logging.getLogger("HTTP")
+        
+        self.name = friendlyName
         
         # TCP Command Interface
         self.tcp_port = tcp_port if tcp_port is not None else 8080           # TCP Port for listener.
@@ -70,23 +74,24 @@ class DeviceContainer:
             self.my_url = "https://"
         self.my_url = self.my_url + str(self.hostname) + ":" + str(self.tcp_port)
     
-    def _sendRequest(self, path, payLoad):
+    def _sendRequest(self, path, payLoad, context=None):
         """
         Sends a request to the brain
         
         Args:
             path (str):  The path of the request (e.g. "control" or "data").
             payLoad (object):  The object to be converted to JSON and sent in the body of the request.
-            
+            context (KContext): Context surrounding the request. (optional)
+
         Returns:
             (bool):  True on success or False on failure.
         """
         
         url = urljoin(self.brain_url, path)
-        ret, msg = sendJSONRequest(url, payLoad)
+        ret, msg = sendJSONRequest(url, payLoad, context=context)
         return ret
     
-    def _registerWithBrain(self):
+    def registerWithBrain(self):
         """
         Sends a registration request to the brain for this client container indicating what devices it represents.
             
@@ -98,14 +103,17 @@ class DeviceContainer:
         
         data = {}
         for deviceType in self.objects:
-            friendlyNames = []
-            for item in self.objects[deviceType]:
-                if item["friendlyName"] is not None:
-                    friendlyNames.append(item["friendlyName"])
+            #friendlyNames = []
+            #for item in self.objects[deviceType]:
+            #    if item["friendlyName"] is not None:
+            #        friendlyNames.append(item["friendlyName"])
                     
-            data[deviceType] = { "count": len(self.objects[deviceType]), "names": friendlyNames }
+            #data[deviceType] = { "count": len(self.objects[deviceType]), "names": friendlyNames }
+            data[deviceType] = []
+            for i, item in enumerate(self.objects[deviceType]):
+                data[deviceType].append({ "uuid": item["uuid"], "active": item["device"].isRunning, "name": item["friendlyName"]})
             
-        result = self._sendRequest("register", { "port": self.tcp_port, "useHttp": self.use_http, "devices": data })
+        result = self._sendRequest("register", { "port": self.tcp_port, "useHttp": self.use_http, "name": self.name, "devices": data }, context=KContext(clientURL=self.my_url))
         if result:
             self.logger.info("Registration COMPLETE")
         else:
@@ -140,7 +148,31 @@ class DeviceContainer:
             
             self.httplogger.debug("CONTAINER (" + str(address[0]) + ") " + str(r.command) + " " + str(path))
             
-            req = KJSONRequest(self, conn, path, payload)
+            #req = KJSONRequest(self, conn, path, payload)
+            req = KJSONRequest(self, conn, path, payload, context=KContext(clientURL=r.headers.get("X-CLIENT-URL"), brainURL=r.headers.get("X-BRAIN-URL")))
+            if req.context.clientURL is None: 
+                req.context.clientURL = self.my_url
+            if req.context.brainURL is None:
+                req.context.brainURL = self.brain_url 
+                
+            if r.command == "OPTIONS":
+                print(r.headers) 
+                headers = str(r.headers).split("\n") 
+                includeHeaders = []
+                for line in headers:
+                    if line.startswith("Access-Control-Request-Headers: "):
+                        line = line.replace("Access-Control-Request-Headers: ","").strip().lower()
+                        if "content-type" in line:
+                            includeHeaders.append("Content-Type")
+                        if "content-length" in line:
+                            includeHeaders.append("Content-Length")
+                        
+                if len(includeHeaders) == 0:
+                    includeHeaders = None
+                
+                print(includeHeaders)
+                return req.sendResponse(False, "OK", headers=includeHeaders)
+            
             if (len(path) == 8 and path == "/control") or (len(path) > 8 and path[:9] == "/control/"):
                 return self._processCommandRequest(req)
             
@@ -149,6 +181,7 @@ class DeviceContainer:
             else:
                 return req.sendResponse(True, "Invalid request", httpStatusCode=404, httpStatusMessage="Not Found")
         except:
+            raise
             req = KJSONRequest(self, conn, None, None)
             return req.sendResponse(True, "invalid request", httpStatusCode=500, httpStatusMessage="Internal Server Error")
     
@@ -161,7 +194,7 @@ class DeviceContainer:
             (thread):  The thread for the container's TCP server
         """
         
-        self._isRunning = True 
+        self.isRunning = True 
                 
         self._lock.acquire()
 
@@ -179,7 +212,7 @@ class DeviceContainer:
             
         self._lock.release()
 
-        while self._isRunning:
+        while self.isRunning:
 
             try:
                 # Accept the new connection
@@ -275,11 +308,11 @@ class DeviceContainer:
             (bool):  True on success else will raise an exception.
         """
         
-        if self._isRunning:
+        if self.isRunning:
             return True 
 
         if autoRegister:
-            self._registerWithBrain()
+            self.registerWithBrain()
         
         self._thread = self._tcpServer()
         self.logger.info("Started @ "+ str(self.my_url))
@@ -287,7 +320,7 @@ class DeviceContainer:
         if autoStartDevices:
             for deviceType in self.objects:
                 for item in self.objects[deviceType]:
-                    if not item["device"]._isRunning:
+                    if not item["device"].isRunning:
                         item["device"].start()
                         
         if not useThreads:
@@ -307,16 +340,16 @@ class DeviceContainer:
             (bool):  True on success else will raise an exception.
         """
 
-        if not self._isRunning:
-            return True 
+        #if not self.isRunning:
+        #    return True 
                 
         if seconds > 0:
             self.logger.info("Shutting down in "+str(seconds)+" second(s).")
             for i in range(0,seconds):
-                if self._isRunning:
+                if self.isRunning:
                     time.sleep(1)
             
-            if self._isRunning and self._thread is not None:
+            if self.isRunning and self._thread is not None:
                 self.stop()
         
         
@@ -338,10 +371,19 @@ class DeviceContainer:
             (bool):  True on success else will raise an exception.
         """
         
-        if not self._isRunning:
+        if not self.isRunning:
             return True 
         
-        self._isRunning = False 
+        self.isRunning = False 
+        
+        i = len(self._threadPool) - 1
+        while i >= 0:
+            try:
+                self._threadPool[i].join()
+            except:
+                pass
+                
+            i = i - 1
         
         if self._socket is not None:
             
@@ -362,7 +404,7 @@ class DeviceContainer:
             self._deviceThread.join()
             
         self.stopDevices()
-        
+                
         self.logger.info("Stopped @ "+ str(self.my_url))
             
         return True
@@ -382,7 +424,7 @@ class DeviceContainer:
         for ldeviceType in self.objects:
             if deviceType is None or deviceType == ldeviceType:
                 for item in self.objects[ldeviceType]:
-                    if item["device"]._isRunning:
+                    if item["device"].isRunning:
                         item["device"].stop()
             
                 if removeDevices:
@@ -390,14 +432,15 @@ class DeviceContainer:
                 
         return True
     
-    def addDevice(self, deviceType, obj, friendlyName=None, autoStart=True, autoRegister=True):
+    def addDevice(self, deviceType, obj, friendlyName=None, id=None, autoStart=True, autoRegister=True):
         """
         Adds a new input/output device and optionally starts it and registers it with the brain.
         
         Args:
             deviceType (str):  The type of the device being added (e.g. "karen.listener.Listener").
             obj (object):  The instantiated class object of the input/output device.
-            friendlyName (str):  The friendly name of the device (e.g. "living room").
+            friendlyName (str):  The friendly name of the device (e.g. "living room"). (optional)
+            id (str):  The Unique ID of this device.  If not set then will default to uuid.uuid4().
             autoStart (bool):  Indicates if this call should call the start() method on input/output device.
             autoRegister (bool):  Indicates if the client should automatically register with the brain
             
@@ -409,17 +452,17 @@ class DeviceContainer:
         if deviceType not in self.objects:
             self.objects[deviceType] = []
         
-        self.objects[deviceType].append({ "device": obj, "friendlyName": friendlyName })
+        self.objects[deviceType].append({ "device": obj, "friendlyName": friendlyName, "uuid": str(uuid.uuid4()) if id is None else str(id) })
         self.logger.info("Added " + str(deviceType))
 
         if autoStart:
-            if not obj._isRunning:
+            if not obj.isRunning:
                 self.logger.debug("Requesting start for " + str(deviceType))
                 obj.start()
                 self.logger.debug("Start request completed for " + str(deviceType))
 
-        if self._isRunning and autoRegister:
-            self._registerWithBrain()
+        if self.isRunning and autoRegister:
+            self.registerWithBrain()
             
         return True 
     
@@ -438,20 +481,21 @@ class DeviceContainer:
         self._handlers[handlerType] = handlerCallback
         return True
     
-    def callbackHandler(self, inType, data):
+    def callbackHandler(self, inType, data, context=None):
         """
         The target of all input/output devices.  Sends collected data to the brain.  Posts request to "/data".
         
         Args:
             inType (str):  The type of data collected (e.g. "AUDIO_INPUT").
             data (object):  The object to be converted to JSON and sent to the brain in the body of the message.
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool):  True on success or False on failure.
         """
         
         jsonData = { "type": inType, "data": data }
-        result = self._sendRequest("/data", jsonData)
+        result = self._sendRequest("/data", jsonData, context=context)
         return result
     
 class Device:
@@ -470,7 +514,9 @@ class Device:
         """
         
         self.type == "DEVICE_TYPE"
-        self._isRunning = False
+        self.uuid = str(uuid.uuid4())
+        self.name = ""
+        self.isRunning = False
         pass 
     
     def start(self, useThreads=True):
@@ -484,7 +530,7 @@ class Device:
             (bool):  True on success else will raise an exception.
         """
 
-        self._isRunning = True
+        self.isRunning = True
         return True 
     
     def wait(self, seconds=0):
@@ -510,5 +556,5 @@ class Device:
             (bool):  True on success else will raise an exception.
         """
         
-        self._isRunning = False
+        self.isRunning = False
         return True

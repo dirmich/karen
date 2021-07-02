@@ -30,7 +30,8 @@ https://docs.projectkaren.ai/
       libfann2 \
       python3-fann2 \
       libportaudio2 \
-      libasound2-dev
+      libasound2-dev \
+      cmake
 
 Install with PIP (Recommended)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -64,9 +65,9 @@ page:
     import karen
     karen.download_models(version="0.9.3", model_type="pbmm", include_scorer=True)
 
-**NOTE:** The version number is optional and ommitted it will attempt to
-determine your currently installed version and use that to download the
-appropriate inference model. Also, you will need to use
+**NOTE:** The version number is optional and if ommitted it will attempt
+to determine your currently installed version and use that to download
+the appropriate inference model. Also, you will need to use
 ``model_type="tflite"`` if you are running on Raspberry Pi.
 
 Starting Up
@@ -78,14 +79,24 @@ process. There is a basic configuration file located in the data
 directory inside the karen module directory
 (``/path/to/karen/data/basic_config.json``).
 
-To run Karen in the entirety:
+To run Karen using the default Listener + Speaker configuration try:
 
 ::
 
     import karen
-    karen.start('/path/to/config.json')
+    karen.start()
 
-**NOTE:** Use ``model_type="tflite"`` if running on the Raspberry Pi.
+**NOTE:** If you have a webcam or video recording device you can try
+``karen.start("video")`` to optionally start the watcher device or
+``karen.start("/path/to/config.json")`` to use a custom configuration.
+
+Read more about startup options including starting the Watcher in
+`Starting Up <https://docs.projectkaren.ai/en/latest/karen/>`__.
+
+If everything is working properly you should be able to point your
+device to the web control panel to test it out. The default URL is:
+
+**http://localhost:8080/webgui**
 
 *Karen is under development against Python 3. She is not compatible with
 Python 2 so be sure to use* ``pip3`` *or* ``python3`` *if appropriate

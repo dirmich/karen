@@ -5,9 +5,6 @@ pyaudio
 urllib3
 requests
 padatious
-opencv-python
 opencv-contrib-python
 Pillow
-halo
-scipy
-padatious
+fann2

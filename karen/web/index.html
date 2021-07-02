@@ -1,5 +1,5 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en-US">
 <head>
 	<title>Control Panel &raquo; __APP_NAME__ __APP_VERSION__</title>
 
@@ -118,6 +118,12 @@
 			font-size: 14px;
 		}
 		
+		.wrap .request pre {
+			white-space: pre-wrap;
+		}
+		
+		.device_list .device-command { width: auto; padding: 5px 10px; line-height: inherit; height: auto; }
+		
 		/*input[type="text"] { width: 100%; max-width: 600px; line-height: 44px; height: 44px; padding: 0 10px; box-sizing: border-box; font-size: 15px; margin-bottom: 10px; border-radius: 3px; border: 1px solid #bcbcbc; background-color: #eee; }*/
 		select { width: 100%; max-width: 600px;  height: 32px; line-height: 32px; padding: 0 10px; font-size: 15px;  margin-bottom: 10px; border-radius: 3px; border: 1px solid #bcbcbc; background-color: #eee; }
 		textarea { width: 100%; max-width: 600px; height: 70px; padding: 5px 10px; box-sizing: border-box; font-size: 14px; border-radius: 3px; border: 1px solid #bcbcbc; background-color: #eee; margin-bottom: 10px; }
@@ -134,6 +140,15 @@
 		h3 { font-size: 1.1rem; }
 		p { font-size: 16px; line-height: 24px; margin-bottom: 16px; max-width: 600px; }
 		
+		table.device_list { border: 1px solid #ccc; }
+		table.device_list th { padding: 4px 8px; background: linear-gradient(#f2f2f2, #d0d0d0); text-align: left; }
+		table.device_list td { padding: 8px 8px; }
+		table.device_list td small { display: block; font-size: 0.7rem;}
+		table.device_list tbody tr td { border-bottom: 1px solid #ddd; }
+		table.device_list tbody tr td .started { color: green; }
+		table.device_list tbody tr td .stopped { color: red; }
+		table.device_list tbody tr:last-child td { border-bottom: none; }
+		
 		@media only screen and (max-width: 768px) {
 			.page_header { height: 60px; height: 60px; line-height: normal; }
 			.page_header .title { padding-top: 10px; font-size: 18px; }
@@ -144,12 +159,151 @@
 			.page_sidebar .button { width: calc(100% - 15px); border-right: none; }
 			.content_container { padding-top: 60px; margin: 0; }
 			.page_footer { left: 0; }
+			table.device_list { display: block; border: none; }
+			table.device_list thead { display: none; }
+			table.device_list tbody { display: block; }
+			table.device_list tbody tr { display: block; clear: left; }
+			table.device_list tbody tr td { display: block; float: left; width: 25%; box-sizing: border-box; border: none; }
+			table.device_list tbody tr td.break { clear: left; width: 75%; padding-bottom: 15px; }
+			table.device_list tbody tr { border-top: 1px solid #ddd; }
+			.options { clear: left; }
 		}
 		
 	</style>
 	
 	<script type="text/javascript" src="/webgui/jquery.js"></script>
 	<script type="text/javascript">
+	
+	function refreshDevices(displayResponses) {
+		my_cmd_text = JSON.stringify({ command: "get-all-current" });
+		if (displayResponses != false) {
+			$('#devices-request pre').text(JSON.stringify({ command: "get-all-current" }, null, 2));
+		}
+		
+		$.ajax({
+			url: "/status/devices",
+			data: my_cmd_text,
+			type: "POST",
+			contentType: "application/json",
+			dataType: "json",
+			beforeSend: function() {
+				if (displayResponses != false) {
+					$('#devices-response pre').text('loading...');
+				}
+				
+				$('table.device_list tbody').children().remove();
+				$('table.device_list tbody').append($('<tr><td colspan="6">Refreshing...</td></tr>'));
+				
+			},
+			success: function(data) {
+				if (displayResponses != false) {
+					$('#devices-response pre').text(JSON.stringify(data["data"], null, 2));
+				}				
+
+				$('table.device_list tbody').children().remove();
+				
+				if ((data["data"].length) == 0) {
+					$('table.device_list tbody').append($('<tr><td colspan="6">No devices found.</td></tr>'));
+					return;
+				}
+				
+				$(Object.keys(data["data"])).each(function(i,k) {
+					try {
+						o = data["data"][k];
+						url = o["url"];
+						if (url.substring(0,5).toLowerCase() == "http:") {
+							ssl = "No";
+						} else {
+							if (url.substring(0,6).toLowerCase() == "https:") {
+								ssl = "Yes";
+							} else {
+								ssl = "Unk";
+							}
+						}
+						
+						friendlyName = (o["name"] == null) ? ("Container " + (i+1)) : o["name"];
+						hostnameAndPort = url.substring(url.indexOf('//') + 2);
+						parts = hostnameAndPort.split(":");
+						hostname = parts[0];
+						port = parts[1];
+						
+						active = (o["active"]) ? "Yes": "No";
+						
+						devices = Object.keys(o["devices"]);
+						
+						//$('table.device_list tbody').children().remove();
+						deviceId = 0;
+						
+						for (var i = 0; i < devices.length; i++) {
+							$(o["devices"][devices[i]]).each(function(x,d) {
+								deviceId++;
+								deviceName = (d["name"] == null) ? ("Device " + deviceId) : d["name"];
+								stat = (d["active"]) ? "<span class='started'>Started</span>" : "<span class='stopped'>Stopped</span>";
+								devButtons = '<button class="device-command" device-container="'+url+'" device-type="'+devices[i]+'" device-id="'+d["uuid"]+'" button-action="START_DEVICE">Start</button> <button class="device-command" device-container="'+url+'" device-type="'+devices[i]+'" device-id="'+d["uuid"]+'" button-action="STOP_DEVICE">Stop</button>';
+								if (active == "No") { devButtons = "Offline</i>"; }
+								
+								hn = $('<td valign="top"></td>').html(friendlyName+"<small>"+url+"</small>");
+								dv = $('<td valign="top" class="break"></td>').html(deviceName+"<small>" + devices[i] + "<br />" + d["uuid"] + "</small>");
+								st = $('<td valign="top"></td>').html(stat);
+								bn = $('<td valign="top" class="break"></td>').html(devButtons);
+								
+								row = $('<tr></tr>');
+								row.append(hn);
+								row.append(dv);
+								row.append(st);
+								row.append(bn);
+								
+								$('table.device_list tbody').append(row);
+								
+								row.find('button.device-command').click(function() {
+									comm = $(this).attr('button-action');
+									tgt = $(this).attr('device-container');
+									devType = $(this).attr('device-type');
+									devId = $(this).attr('device-id');
+									
+									my_cmd_text = JSON.stringify({ command: "RELAY", data: { command: comm, type: devType, uuid: devId } }, null, 2);
+									$('#devices-request pre').text(my_cmd_text);
+									
+									
+									$.ajax({
+										url: "/control",
+										data: my_cmd_text,
+										type: "POST",
+										contentType: "application/json",
+										dataType: "json",
+										beforeSend: function() {
+											$('#devices-response pre').text('processing...');
+										},
+										success: function(data) {
+											$('#devices-response pre').text(JSON.stringify(data, null, 2));
+											refreshDevices(false);
+										},
+										error: function(jqXHR, textStatus) {
+											$('#devices-response pre').text(textStatus);
+										}
+									});
+									return false;
+								});
+							});
+						}
+						
+					} catch {
+					}
+					
+				});
+				
+			},
+			error: function(jqXHR, textStatus) {
+				if (displayResponses != false) {
+					$('#devices-response pre').text(textStatus);
+				}
+				
+				$('table.device_list tbody').children().remove();
+				$('table.device_list tbody').append($('<tr><td colspan="6">Error loading devices.</td></tr>'));
+			}
+		});
+	}
+	
 	$(document).ready(function() { 
 		$('a.button').click(function() {
 			$('.page_block').slideUp('fast');
@@ -165,6 +319,14 @@
 				$($(this).val()).slideDown('fast');
 			} else {
 				$($(this).val()).slideUp('fast');
+			}
+		});
+		
+		$('input.toggle-wrap').click(function() {
+			if ($($(this).val()).hasClass('wrap')) {
+				$($(this).val()).removeClass('wrap');
+			} else {
+				$($(this).val()).addClass('wrap');
 			}
 		});
 		
@@ -196,25 +358,7 @@
 		});
 		
 		$('#devices-button').click(function() {
-			my_cmd_text = JSON.stringify({ command: "get-all-current" });
-			$('#devices-request pre').text(JSON.stringify({ command: "get-all-current" }, null, 2));
-
-			$.ajax({
-				url: "/status/devices",
-				data: my_cmd_text,
-				type: "POST",
-				contentType: "application/json",
-				dataType: "json",
-				beforeSend: function() {
-					$('#devices-response pre').text('loading...');
-				},
-				success: function(data) {
-					$('#devices-response pre').text(JSON.stringify(data["data"], null, 2));
-				},
-				error: function(jqXHR, textStatus) {
-					$('#devices-response pre').text(textStatus);
-				}
-			});
+			refreshDevices();
 			
 			return false;
 		});
@@ -254,6 +398,7 @@
 			}
 			return false;
 		});
+		
 	});
 	</script>
 </head>
@@ -287,9 +432,10 @@
 			
 			<div class="options">
 				<input type="checkbox" class="toggle-target" value="#command-log" id="checkbox" checked="checked"><label for="checkbox"> Show Log</label>
+				<input type="checkbox" class="toggle-wrap" value="#command-log" id="checkbox4" checked="checked"><label for="checkbox4"> Word Wrap</label>
 			</div>
 			
-			<div class="log" id="command-log">
+			<div class="log wrap" id="command-log">
 				<div id="command-request" class="request">
 					<h3>Request</h3>
 					<pre></pre>
@@ -317,9 +463,10 @@
 			
 			<div class="options">
 				<input type="checkbox" class="toggle-target" value="#data-log" id="checkbox2" checked="checked"><label for="checkbox2"> Show Log</label>
+				<input type="checkbox" class="toggle-wrap" value="#data-log" id="checkbox3" checked="checked"><label for="checkbox3"> Word Wrap</label>
 			</div>
 			
-			<div class="log" id="data-log">
+			<div class="log wrap" id="data-log">
 				<div id="data-request" class="request">
 					<h3>Request</h3>
 					<pre></pre>
@@ -337,7 +484,28 @@
 		<div class="">
 			<h2>Devices</h2>
 			
-			<div class="log" id="devices-log">
+			<table class="device_list" cellspacing="1" cellpadding="0">
+			<thead>
+			<tr>
+				<th>Container</th>
+				<th>Device</th>
+				<th>Status</th>
+				<th>Action</th>
+			</tr>
+			</thead>
+			<tbody>
+			<tr>
+				<td colspan="6">No devices found.</td>
+			</tr>
+			</tbody>
+			</table>
+			
+			<div class="options">
+				<input type="checkbox" class="toggle-target" value="#devices-log" id="checkbox6" checked="checked"><label for="checkbox6"> Show Log</label>
+				<input type="checkbox" class="toggle-wrap" value="#devices-log" id="checkbox5" checked="checked"><label for="checkbox5"> Word Wrap</label>
+			</div>
+			
+			<div class="log wrap" id="devices-log">
 				<div id="devices-request" class="request">
 					<h3>Request</h3>
 					<pre></pre>

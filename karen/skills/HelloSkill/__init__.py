@@ -26,12 +26,13 @@ class HelloSkill(Skill):
         self.register_intent_file("hello.intent", self.handle_hello_intent)
         return True
         
-    def handle_help_response(self, message):
+    def handle_help_response(self, message, context=None):
         """
         Target callback for helper response
         
         Args:
             message (str): text of response (result of ask call).
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool): True on success or False on failure
@@ -39,12 +40,13 @@ class HelloSkill(Skill):
         
         return self.say("GOT IT")
 
-    def handle_hello_intent(self, message):
+    def handle_hello_intent(self, message, context=None):
         """
         Primary function for intent matches.  Called by skill manager.
         
         Args:
-            message (str):  text that triggered the intent
+            message (obj):  text that triggered the intent
+            context (KContext): Context surrounding the request. (optional)
             
         Returns:
             (bool): True on success or False on failure

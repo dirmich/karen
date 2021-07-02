@@ -125,6 +125,7 @@ Here's a simple device container configuration with one listener class and one s
 		},
 		"devices": [
 			{
+				"uuid": null,
 				"friendlyName": "living room",
 				"type": "karen.listener.Listener",
 				"parameters": {
