@@ -7,9 +7,9 @@ Make sure you enable the camera in the Pi if that's what you're using.  It's sim
 sudo -s raspi-config
 ```
 
-## Audio
+## Audio (Optional)
 
-I tend to like the pulseaudio setup since it gives a bit more control (in my opinion) over the default setup.  The installation is pretty simple.  here are the packages and they are totally optional.
+While this is 100% optiona, I tend to like the pulseaudio setup since it gives a bit more control (in my opinion) over the default setup.  The installation is pretty simple.  here are the packages and they are totally optional.
 
 ```
 sudo apt-get install libatlas-base-dev \
@@ -19,7 +19,7 @@ sudo apt-get install libatlas-base-dev \
   libpulse-dev
 ```
 
-Next, you shouldn't need it, but just in case I'm listing it here for your review in the event you need to modprobe the sound driver for the onboard output on the Pi.
+Next, you shouldn't need it, but just in case I'm listing it here for your information in the event you need to modprobe the sound driver for the onboard output on the Pi 4.
 ```
 sudo modprobe snd_bcm2835 
 ```
