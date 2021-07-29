@@ -437,6 +437,9 @@ class Container():
         
         ret = True
         for item in self.devices:
+            if item == str(self.id):
+                continue 
+            
             if "stop" in self.devices[item]["accepts"] and self.devices[item]["device"].isRunning():
                 try:
                     self.devices[item]["device"].stop()
