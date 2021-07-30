@@ -11,7 +11,7 @@ Karen's architecture is divided into components that each require separate insta
 __Python Module Overview__
 
 | Python Module  | Type   | Description                                                      |
-| -------------- | ------ | ---------------------------------------------------------------- |
+| :------------- | :----- | :--------------------------------------------------------------- |
 | karen          | Base   | Global start() method, handlers and shared features.             |
 | karen_brain    | Engine | Main CPU where device containers will send/receive their I/O.    |
 | karen_device   | Engine | Standalone service for plugins and I/O to the brain.             |
@@ -22,8 +22,8 @@ __Python Module Overview__
 
 __Python Module to Package Mapping__
 
-| Python Module  | to      | PIP Package           | Notes                               |
-| -------------- | ------- | --------------------- | ----------------------------------- |
+| Python Module  | to     | PIP Package           | Notes                               |
+| :------------- | ------ | :-------------------- | :---------------------------------- |
 | karen          | __>>__ | karen                 | *Shared libraries and methods only. |
 | karen_brain    | __>>__ | karen-brain           | *Includes shared karen modules.     |
 | karen_device   | __>>__ | karen-device          | *Includes shared karen modules.     |
