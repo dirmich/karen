@@ -14,8 +14,7 @@ import urllib3
 import requests 
 import sys
 import traceback 
-from pickle import NONE
-
+import queue
 
 def dayPart():
     """
@@ -121,7 +120,171 @@ def getFileContents(fileName, mode="r"):
     
     return content
 
-def sendHTTPRequest(url, type="POST", params=None, jsonData=None, origin=None, groupName=None):
+class StreamingClient(object):
+    """
+    Streaming Media Client Class
+    """
+    
+    def __init__(self):
+        """
+        Streaming Client Initialization.
+        """
+        self.streamBuffer = ""
+        self.streamQueue = queue.Queue()
+        self.streamThread = threading.Thread(target = self.stream)
+        self.streamThread.daemon = True
+        self.connected = True
+        self.kill = False
+
+        super(StreamingClient, self).__init__()
+    
+    def start(self):
+        """
+        Starts an independent thread for the streaming client to hand off data from the buffer to avoid blocking calls on new images.
+        """
+        self.streamThread.start()
+
+    def transmit(self, data):
+        """
+        Overridden in inherited class, but would be used to transmit data to requestor.
+        
+        Args:
+            data (byte):  Byte array to transmit
+            
+        Returns:
+            (bool): True on success or False on failure
+            
+        """
+        
+        return True
+
+    def stop(self):
+        """
+        Stops the streaming connection thread
+        """
+        self.kill = True
+        self.connected = False
+
+    def bufferStreamData(self, data):
+        """
+        Adds new data to the buffer for transmission to the requestor.
+        
+        Args:
+            data (byte): Data to be saved to buffer
+        """
+        #use a thread-safe queue to ensure stream buffer is not modified while we're sending it
+        self.streamQueue.put(data)
+
+    def stream(self):
+        """
+        Thread runtime for reading data from the buffer and transmitting it to the client
+        """
+        
+        while self.connected:
+            #this call blocks if there's no data in the queue, avoiding the need for busy-waiting
+            self.streamBuffer = self.streamQueue.get()
+            
+            #check if kill or connected state has changed after being blocked
+            if (self.kill or not self.connected):
+                self.stop()
+                return
+
+            self.transmit(self.streamBuffer)
+                    
+
+class TCPStreamingClient(StreamingClient):
+    """
+    TCP Streaming Media Client Class
+    """
+    
+    def __init__(self, sock, includeHeader=True, includeBoundary=True):
+        """
+        TCP Streaming Client Initialization
+        """
+        super(TCPStreamingClient, self).__init__()
+        self.logger = logging.getLogger("TCP_STREAM")
+        self.sock = sock
+        self.sock.settimeout(5)
+        self.boundary = '--boundarydonotcross'
+        self.includeHeader = includeHeader
+        self.includeBoundary = includeBoundary
+        
+        self.logger.debug("Streaming client connected.")
+        
+        if includeHeader:
+            self.sock.send(self.request_headers().encode())
+
+    def request_headers(self):
+        """
+        Creates the headers for sending to the client on the beginning of the stream.
+        
+        Returns:
+            (str):  Formatted HTTP headers for initial response to client
+        """
+        # Send first
+        return "\n".join([
+            "HTTP/1.1 200 OK",
+            "Date: "+time.strftime("%a, %d %b %Y %H:%M:%S %Z"),
+            "Cache-Control: no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0",
+            "Connection: close",
+            "Content-Type: multipart/x-mixed-replace;boundary=\"" + self.boundary + "\"",
+            "Expires: Mon, 1 Jan 2030 00:00:00 GMT",
+            "Pragma: no-cache", 
+            "Access-Control-Allow-Origin: *"]) + "\n\n" + self.boundary + "\n"
+        
+    def image_headers(self, data):
+        """
+        Generates headers for each frame of the MJPEG Stream.
+        
+        Args:
+            data (byte):  Data from buffer that will be sent to client
+            
+        Returns:
+            (str):  Formatted HTTP headers for individual image frame
+        """
+        
+        # Send with each frame
+        return "\n".join([
+            "X-Timestamp: " + str(time.time()),
+            "Content-Length: " + str(len(data)),
+            "Content-Type: image/jpeg"
+        ]) + "\n\n"
+        
+    def stop(self):
+        """
+        Stops the client connection and related sockets.
+        """
+        
+        self.sock.close()
+        super().stop()
+
+    def transmit(self, data):
+        """
+        Sends data to client via TCP (HTTP) response.
+        
+        Args:
+            data (byte): Data to be transmitted
+        
+        Returns:
+            (bool): True on success
+        """
+        try:
+            if self.includeHeader:
+                self.sock.send(self.image_headers(data).encode())
+
+            self.sock.send(data)
+                
+            if self.includeBoundary:
+                self.sock.send(self.boundary.encode())
+
+            return True
+        except:
+            self.connected = False
+            self.sock.close()
+            
+        return True
+
+def sendHTTPRequest(url, type="POST", params=None, jsonData=None, origin=None, groupName=None, isStream=True):
     
     #FIXME: Add context to request!
     
@@ -155,17 +318,18 @@ def sendHTTPRequest(url, type="POST", params=None, jsonData=None, origin=None, g
             headers["X-GROUP"] = str(groupName)
         
         if type == "GET": # Doesn't send request body
-            res = requests.get(url, headers=headers, verify=False)
+            res = requests.get(url, headers=headers, verify=False, stream=isStream)
         else:
-            res = requests.post(url, data=request_body, headers=headers, verify=False)
-            
+            res = requests.post(url, data=request_body, headers=headers, verify=False, stream=isStream)
+        
         ret_val = True
         if res.ok:
             try:
                 if res.is_redirect or res.is_permanent_redirect:
                     return False # We don't support redirects
                 
-                if res.headers.get("content-type") == "application/json":
+                ret_type, ret_param = parse_header(res.headers.get("content-type"))
+                if ret_type == "application/json":
                     res_obj = res.json()
                     if "error" in res_obj and "message" in res_obj:
                         result = res_obj
@@ -174,8 +338,10 @@ def sendHTTPRequest(url, type="POST", params=None, jsonData=None, origin=None, g
                     return ret_val, res.headers.get("content-type"), res.json() # returns as a dict
                 
                 # Else!
-                if res.headers.get("content-type").startswith("text/"):
-                    return True, res.headers.get("content-type"), res.text # returns as a string
+                if ret_type.startswith("text/"):
+                    return True, ret_type, res.text # returns as a string
+                elif ret_type == "multipart/x-mixed-replace":
+                    return True, res.headers.get("content-type"), res # returns as request item
                 else:
                     return True, res.headers.get("content-type"), res.content # returns as bytes
                         
@@ -287,6 +453,59 @@ class KHTTPHandler(BaseHTTPRequestHandler):
         self.socket.close()
         self.isResponseSent = True
         return True
+    
+    def sendHeaders(self, contentType="text/html", httpStatusCode=200, httpStatusMessage="OK", headers=None):
+        if self.isResponseSent: # Bail if we already sent a response to requestor
+            return None 
+        
+        if self.socket is None:
+            return None 
+        
+        ret = True
+        try:
+            response_status = str(httpStatusCode) + " " + str(httpStatusMessage)
+            response_status = response_status.replace("(","").replace(")","").replace("'","").replace(",","")
+        
+            response_headers = [
+                    "HTTP/1.1 " + response_status,
+                    "Date: "+time.strftime("%a, %d %b %Y %H:%M:%S %Z")
+                ]
+            
+            if (headers is None or "Content-Type" not in headers) and contentType is not None:
+                response_headers.append("Content-Type: "+contentType)
+            
+            if headers is None or "Access-Control-Allow-Origin" not in headers:
+                response_headers.append("Access-Control-Allow-Origin: *")
+            
+            if headers is None or "Cache-Control" not in headers:
+                response_headers.append("Cache-Control: no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0")
+
+            if headers is None or "Expires" not in headers:
+                response_headers.append("Expires: Mon, 1 Jan 2020 00:00:00 GMT")
+                
+            if headers is None or "Pragma" not in headers:
+                response_headers.append("Pragma: no-cache")
+            
+            if headers is not None:
+                for h in headers:
+                    response_headers.append(str(h).strip() + ": " + str(headers[h]).strip())
+            
+                #if "X-ORIGIN" not in headers:
+                #    response_headers.append("X-ORIGIN: " + self.origin)
+            
+            response_text = "\n".join(response_headers)
+            
+            response_text += "\n\n"
+            self.socket.send(response_text.encode())
+                
+            #self.socket.shutdown(socket.SHUT_RDWR)
+            #self.socket.close()
+            ret = self.socket
+        except:
+            self.socket.close()
+            ret = None
+
+        return ret
     
     def sendHTTP(self, contentBody=None, contentType="text/html", httpStatusCode=200, httpStatusMessage="OK", headers=None):
         if self.isResponseSent: # Bail if we already sent a response to requestor
