@@ -36,7 +36,7 @@ In version 0.7.0 and later you are required to install the brain, device, and an
 
 ## Installation
 
-Karen is available through pip, but to use the built-in devices there are a few extra libraries you may require.  Please visit the [Basic Install](installation.basic.md) page for more details.  If you're impatient and don't want to read the details then the commands below will perform a __full installation__ with all plugins and dependencies.
+Karen is available through pip, but to use the built-in devices there are a few extra libraries you may require.  Please visit the [Basic Install](https://docs.projectkaren.ai/en/latest/installation.basic/) page for more details.  If you're impatient and don't want to read the details then the commands below will perform a __full installation__ with all plugins and dependencies.
 
 ```
 sudo apt-get install \

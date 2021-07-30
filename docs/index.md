@@ -11,7 +11,7 @@ Karen's architecture is divided into components that each require separate insta
 __Python Module Overview__
 
 | Python Module  | Type   | Description                                                      |
-| -------------- | ------ | ---------------------------------------------------------------- |
+| :------------- | :----- | :--------------------------------------------------------------- |
 | karen          | Base   | Global start() method, handlers and shared features.             |
 | karen_brain    | Engine | Main CPU where device containers will send/receive their I/O.    |
 | karen_device   | Engine | Standalone service for plugins and I/O to the brain.             |
@@ -22,21 +22,21 @@ __Python Module Overview__
 
 __Python Module to Package Mapping__
 
-| Python Module  | to      | PIP Package           | Notes                               |
-| -------------- | ------- | --------------------- | ----------------------------------- |
-| karen          | __-->__ | karen                 | *Shared libraries and methods only. |
-| karen_brain    | __-->__ | karen-brain           | *Includes shared karen modules.     |
-| karen_device   | __-->__ | karen-device          | *Includes shared karen modules.     |
-| karen_listener | __-->__ | karen-plugin-listener |                                     |
-| karen_watcher  | __-->__ | karen-plugin-watcher  |                                     |
-| karen_speaker  | __-->__ | karen-plugin-speaker  |                                     |
-| karen_panel    | __-->__ | karen-plugin-panel    |                                     |
+| Python Module  | to     | PIP Package           | Notes                               |
+| :------------- | ------ | :-------------------- | :---------------------------------- |
+| karen          | __>>__ | karen                 | *Shared libraries and methods only. |
+| karen_brain    | __>>__ | karen-brain           | *Includes shared karen modules.     |
+| karen_device   | __>>__ | karen-device          | *Includes shared karen modules.     |
+| karen_listener | __>>__ | karen-plugin-listener |                                     |
+| karen_watcher  | __>>__ | karen-plugin-watcher  |                                     |
+| karen_speaker  | __>>__ | karen-plugin-speaker  |                                     |
+| karen_panel    | __>>__ | karen-plugin-panel    |                                     |
 
 In version 0.7.0 and later you are required to install the brain, device, and any desired plugins explicitly.
 
 ## Installation
 
-Karen is available through pip, but to use the built-in devices there are a few extra libraries you may require.  Please visit the [Basic Install](installation.basic.md) page for more details.  If you're impatient and don't want to read the details then the commands below will perform a __full installation__ with all plugins and dependencies.
+Karen is available through pip, but to use the built-in devices there are a few extra libraries you may require.  Please visit the [Basic Install](https://docs.projectkaren.ai/en/latest/installation.basic/) page for more details.  If you're impatient and don't want to read the details then the commands below will perform a __full installation__ with all plugins and dependencies.
 
 ```
 sudo apt-get install \

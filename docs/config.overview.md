@@ -116,7 +116,7 @@ Here's a simple device container configuration with one listener class and one s
 {
 	"container": {
 		"start": true,
-		"groupName": "living room",
+		"groupName": "Living Room",
 		"tcp_port": 8081,
 		"hostname": null,
 		"ssl": {
@@ -163,6 +163,7 @@ You must include a brain section in all configurations.  The brain must at least
 	},
 	"container": {
 		"start": true,
+		"groupName": "Living Room",
 		"tcp_port": 8081,
 		"hostname": null,
 		"ssl": {
@@ -171,13 +172,8 @@ You must include a brain section in all configurations.  The brain must at least
 		},
 		"devices": [
 			{
-				"friendlyName": "living room",
 				"type": "karen_speaker.Speaker"
 			}
-		],
-		"commands": [
-			{ "type": "KILL", "function": "karen.handlers.handleKillCommand" },
-			{ "type": "SAY", "function": "karen.handlers.device_handleSayCommand" }
 		]
 	}
 }

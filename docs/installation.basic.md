@@ -1,8 +1,8 @@
 # Installation
-Karen is available as separate components that together create an extensible environment for devices and processing input/output.  These components can be installed together or separately depending on your needs.  This page attempts to articulate how to install each of the components and their dependencies.
+Karen is available as separate components that together create an extensible environment for devices and the processing of input/output.  These components can be installed together or separately depending on your needs.  This page attempts to articulate how to install each of the components and their dependencies.
 
 ## Install the BRAIN
-In order for Karen to work properly you must have a running instance of ```kbrain```.  The brain is fairly straightforward to install with the following steps:
+In order for Karen to work properly you must have a running instance of ```karen_brain.Brain()```.  The brain is fairly straightforward to install with the following steps:
 
 ```
 sudo apt-get install libfann2 python3-fann2 
@@ -16,7 +16,7 @@ Then to start the brain you can run the following:
 import karen
 karen.start("/path/to/config.json")
 ```
-Please make note that to start the brain by itself then you must specify your own configuration file as all of the built-in configurations will include a brain and device instance in their startup.
+Please make note that to start the brain by itself then you must specify your own configuration file as all of the built-in configurations will include a brain and device container instance in their startup.
 
 ## Install the DEVICE CONTAINER
 The device container service is used to allow the brain to interact with the input/output devices like a microphone or speaker output.  The individual device plugins can be installed separately.  To install the device container service follow the steps below:
@@ -48,7 +48,7 @@ sudo apt-get install libportaudio2 libasound2-dev
 ```
 pip3 install karen-device karen-plugin-listener
 ```
-The listener device installation does not automatically include the speech models althought it does include a method to allow you to download these.  To download the speech models after installation execute these steps in a python prompt or script:
+The listener device installation does not automatically include the speech models although it does include a method to enable you to download them.  To download the speech models after installation execute these steps in a python prompt or script:
 ```
 import karen_listener
 model_type = "pbmm"                         # use "tflite" for Raspberry Pi
@@ -68,4 +68,9 @@ pip3 install karen-device karen-plugin-watcher
 See more details in the [configuration overview](config.overview.md) on how to include a watcher device in your device container configuration.  It will then be started with the Device Container in which it is included.
 
 ### Plugins: PANEL
-Coming soon!
+The Panel plugin allows Karen to display items on a screen and accept touchscreen input. It interacts with the Brain to both control and consume inputs for displaying. To install the panel follow the steps below:
+
+```
+pip3 install karen-device karen-plugin-panel
+```
+See more details in the [configuration overview](config.overview.md) on how to include a panel device in your device container configuration.  It will then be started with the Device Container in which it is included.
