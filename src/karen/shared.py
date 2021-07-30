@@ -535,7 +535,7 @@ class KHTTPHandler(BaseHTTPRequestHandler):
             if (headers is None or "Content-Type" not in headers) and contentType is not None:
                 response_headers.append("Content-Type: "+contentType)
             
-            if (headers is None or "Content-Length" not in headers) and contentBody is not None and contentBody != "":
+            if (headers is None or "Content-Length" not in headers) and contentBody is not None and len(contentBody) > 0:
                 response_headers.append("Content-Length: "+str(len(response_body)))
             
             if headers is None or "Access-Control-Allow-Origin" not in headers:
