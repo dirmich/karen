@@ -10,27 +10,27 @@ Karen's architecture is divided into components that each require separate insta
 
 __Python Module Overview__
 
-| Python Module  | Type | Description |
-| ------- | ---- | ----- |
-| karen   | Base | Global start() method, handlers and shared features. |
-| karen_brain  | Engine | Main CPU where device containers will send/receive their I/O. |
-| karen_device | Engine | Standalone service for plugins and I/O to the brain. |
-| karen_listener | Plugin | Audio capture and Speech-to-Text translation for AUDIO_INPUT. |
-| karen_watcher | Plugin | Video capture and object detection/recognition for IMAGE_INPUT. |
-| karen_speaker | Plugin | Converts Text-to-Speech and plays output audio through speakers. |
-| karen_panel | Plugin | Visual display for Karen |
+| Python Module  | Type   | Description                                                      |
+| -------------- | ------ | ---------------------------------------------------------------- |
+| karen          | Base   | Global start() method, handlers and shared features.             |
+| karen_brain    | Engine | Main CPU where device containers will send/receive their I/O.    |
+| karen_device   | Engine | Standalone service for plugins and I/O to the brain.             |
+| karen_listener | Plugin | Audio capture and Speech-to-Text translation for AUDIO_INPUT.    |
+| karen_watcher  | Plugin | Video capture and object detection/recognition for IMAGE_INPUT.  |
+| karen_speaker  | Plugin | Converts Text-to-Speech and plays output audio through speakers. |
+| karen_panel    | Plugin | Visual display for Karen                                         |
 
 __Python Module to Package Mapping__
 
-| Python Module | to | PIP Package | Notes |
-| ------------- | -- | ----------- | ---- |
-| karen | __-->__ | karen | *Shared libraries and methods only. |
-| karen_brain | __-->__ | karen-brain | *Includes shared karen modules. |
-| karen_device | __-->__ | karen-device | *Includes shared karen modules. |
-| karen_listener | __-->__ | karen-plugin-listener | |
-| karen_watcher | __-->__ | karen-plugin-watcher | |
-| karen_speaker | __-->__ | karen-plugin-speaker | |
-| karen_panel | __-->__ | karen-plugin-panel | |
+| Python Module  | to      | PIP Package           | Notes                               |
+| -------------- | ------- | --------------------- | ----------------------------------- |
+| karen          | __-->__ | karen                 | *Shared libraries and methods only. |
+| karen_brain    | __-->__ | karen-brain           | *Includes shared karen modules.     |
+| karen_device   | __-->__ | karen-device          | *Includes shared karen modules.     |
+| karen_listener | __-->__ | karen-plugin-listener |                                     |
+| karen_watcher  | __-->__ | karen-plugin-watcher  |                                     |
+| karen_speaker  | __-->__ | karen-plugin-speaker  |                                     |
+| karen_panel    | __-->__ | karen-plugin-panel    |                                     |
 
 In version 0.7.0 and later you are required to install the brain, device, and any desired plugins explicitly.
 
@@ -68,7 +68,7 @@ karen.start()
 
 __NOTE:__ Use ```model_type="tflite"``` if running on the Raspberry Pi.  If you have a webcam or video recording device you can also try ```karen.start("video")``` to optionally start the watcher device.
 
-Read more about startup options including starting the Watcher in [Starting Up](karen.md).
+Read more about startup options including starting the Watcher in [Starting Up](https://docs.projectkaren.ai/en/latest/karen/).
 
 If everything is working properly you should be able to point your device to the web control panel running on the __Brain__ engine to test it out.  The default URL is:
 
