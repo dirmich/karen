@@ -18,7 +18,7 @@ __Python Module Overview__
 | karen_listener | Plugin | Audio capture and Speech-to-Text translation for AUDIO_INPUT.    |
 | karen_watcher  | Plugin | Video capture and object detection/recognition for IMAGE_INPUT.  |
 | karen_speaker  | Plugin | Converts Text-to-Speech and plays output audio through speakers. |
-| karen_panel    | Plugin | Visual display for Karen                                         |
+| karen_panel    | Plugin | Visual display for use with touchscreen operations.              |
 
 __Python Module to Package Mapping__
 
@@ -55,7 +55,7 @@ pip3 install karen-brain karen-device karen-listener karen-watcher karen-speaker
 ```
 __NOTE:__ The installation of OpenCV is automatically triggered when you install karen-plugin-watcher and this may take a while on the Raspberry Pi OS as it has to recompile some of the libraries.  Patience is required here as the spinner icon appeared to get stuck several times in our tests... so just let it run until it completes.  If it encounters a problem then it'll print out the error for additional troubleshooting.
 
-Once installed you can create a new instance of Karen using a [configuration file](config.overview.md) with the following:
+Once installed you can create a new instance of Karen using a [configuration file](https://docs.projectkaren.ai/en/latest/config.overview/) with the following:
 
 ```
 import karen_listener
@@ -72,9 +72,7 @@ Read more about startup options including starting the Watcher in [Starting Up](
 
 If everything is working properly you should be able to point your device to the web control panel running on the __Brain__ engine to test it out.  The default URL is:
 
-__
-[http://localhost:8080/](http://localhost:8080/)
-__
+__[http://localhost:8080/](http://localhost:8080/)__
 
 ![Control Panel](https://projectkaren.ai/wp-content/uploads/2021/06/karen_model_0_5_4_control_panel.png)
 
