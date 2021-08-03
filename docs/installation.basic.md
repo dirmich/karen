@@ -38,6 +38,16 @@ sudo apt-get install festival festvox-us-slt-hts
 ```
 pip3 install karen-device karen-plugin-speaker
 ```
+```
+import karen_device, karen_speaker
+
+brain_url = "http://localhost:8080"
+device = karen_device.DeviceContainer(brain_url=brain_url)
+speaker = karen_speaker.Speaker(callback=device.callbackHandler)
+device.addDevice("karen_speaker.Speaker", speaker, autoStart=True)
+device.start()
+device.wait()
+```
 See more details in the [configuration overview](config.overview.md) on how to include a speaker device in your device container configuration.  It will then be started with the Device Container in which it is included.
 
 ### Plugins: LISTENER
@@ -54,6 +64,16 @@ import karen_listener
 model_type = "pbmm"                         # use "tflite" for Raspberry Pi
 karen_listener.download_models(model_type)  # Downloads models for deepspeech
 ```
+```
+import karen_device, karen_listener
+
+brain_url = "http://localhost:8080"
+device = karen_device.DeviceContainer(brain_url=brain_url)
+listener = karen_listener.Listener(callback=device.callbackHandler)
+device.addDevice("karen_listener.Listener", listener, autoStart=True)
+device.start()
+device.wait()
+```
 
 See more details in the [configuration overview](config.overview.md) on how to include a listener device in your device container configuration.  It will then be started with the Device Container in which it is included.
 
@@ -65,6 +85,16 @@ sudo apt-get install libatlas-base-dev cmake
 ```
 pip3 install karen-device karen-plugin-watcher
 ```
+```
+import karen_device, karen_watcher
+
+brain_url = "http://localhost:8080"
+device = karen_device.DeviceContainer(brain_url=brain_url)
+watcher = karen_watcher.Watcher(callback=device.callbackHandler)
+device.addDevice("karen_watcher.Watcher", watcher, autoStart=True)
+device.start()
+device.wait()
+```
 See more details in the [configuration overview](config.overview.md) on how to include a watcher device in your device container configuration.  It will then be started with the Device Container in which it is included.
 
 ### Plugins: PANEL
@@ -72,5 +102,16 @@ The Panel plugin allows Karen to display items on a screen and accept touchscree
 
 ```
 pip3 install karen-device karen-plugin-panel
+```
+
+```
+import karen_device, karen_panel
+
+brain_url = "http://localhost:8080"
+device = karen_device.DeviceContainer(brain_url=brain_url)
+panel = karen_panel.Panel(callback=device.callbackHandler)
+device.addDevice("karen_panel.Panel", panel, autoStart=True)
+device.start()
+device.wait()
 ```
 See more details in the [configuration overview](config.overview.md) on how to include a panel device in your device container configuration.  It will then be started with the Device Container in which it is included.
