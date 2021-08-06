@@ -89,6 +89,8 @@ with all plugins and dependencies.
     sudo apt-get install \
       libfann2 \
       python3-fann2 \
+      python3-pyaudio \
+      python3-pyqt5 \
       festival \
       festvox-us-slt-hts  \
       libportaudio2 \
