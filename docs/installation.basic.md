@@ -101,6 +101,7 @@ sudo apt-get install libatlas-base-dev cmake
 ```
 
 ```
+pip3 install scikit-build # includes skbuild for compiling opencv
 pip3 install karen-device karen-plugin-watcher
 ```
 

@@ -82,13 +82,13 @@ def start(configFile=None, log_level="info", log_file=None):
     try:
         from karen_brain import start as kbrain_start
         brain = kbrain_start(configFile, log_level, log_file, x_wait=False)
-    except NameError:
+    except ModuleNotFoundError:
         pass
     
     try:
         from karen_device import start as kdevice_start
         container = kdevice_start(configFile, log_level, log_file, x_wait=False)
-    except NameError:
+    except ModuleNotFoundError:
         pass
     
     
