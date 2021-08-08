@@ -1,6 +1,3 @@
-# Basic Audio-only Example
-
-```
 {
 	"settings": {
 		"libraryFolder": null,
@@ -34,6 +31,28 @@
 			{
 				"uuid": null,
 				"type": "karen_speaker.Speaker"
+			},
+			{
+				"uuid": null,
+				"type": "karen_watcher.Watcher",
+				"parameters": {
+					"classifierFile": null,
+					"recognizerFile": null,
+					"namesFile": null,
+					"trainingSourceFolder": null,
+					"videoDeviceIndex": null,
+					"framesPerSecond": 1.0,
+					"orientation": 0
+				}
+			},
+			{
+				"uuid": null,
+				"type": "karen_panel.PanelApp",
+				"isPanel": true,
+				"parameters": {
+					"screenSelection": null,
+					"fullScreen": false
+				}
 			}
 		]
 	},
@@ -49,4 +68,3 @@
 		}
 	}
 }
-```

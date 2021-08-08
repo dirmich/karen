@@ -1,16 +1,17 @@
-# Calling the start() method
-There are lots of ways to leverage karen.  You can import the device modules like listener and use on its own or you can start the entire process.  There is a [basic configuration](config.example.md) file located in the data directory inside the karen module directory (```/path/to/karen/data/basic_config.json```).
+# Calling the karen.start() method
+There are lots of ways to leverage Karen.  You can import the device modules like the listener and use it on its own or you can start the entire process (brain, device container, and all).  There is a [basic configuration](config.example.md) file located in the data directory inside the karen main module directory (```./karen/data/basic_config.json```).
 
-You will need to either download the speech models or reference them in the configuration file.  You can download the models with the following:
+To use the listener you will need to either download the speech models or reference them in the configuration file.  You can download the models with the following:
 
 ```
-import karen
-karen.download_models(model_type="pbmm", overwrite=False)
+import karen_listener
+model_type = "pbmm"	# Set this to "tflite" on the Raspberry Pi
+karen_listener.download_models(model_type, overwrite=False) 
 ```
 
 __ALERT:__ You should replace ```"pbmm"``` with ```"tflite"``` in the above command if you are downloading on the Raspberry Pi as Mozilla DeepSpeech only supports TensorFlow Lite on that platform.  
 
-This method will attempt to download the deepspeech models if they don't already exist.  If they do exist then the command will exit having done nothing but verify the files exist.
+This method will attempt to download the deepspeech models if they don't already exist.  If they do exist then the command will exit successfully without re-downloading them.
 
 # Listener + Speaker Example
 
@@ -49,7 +50,7 @@ Karen's configuration file is pretty advanced so make sure you read the [Configu
 
 -----
 
-# karen.start
+## ```karen.start(configFile=None, log_level="info", log_file=None)```
 
 ::: karen.start
     rendering:

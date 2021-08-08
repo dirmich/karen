@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2021-08-08 
+
+This is a major change and is not backwards compatible in our quest to reach 1.0 status.
+
+### Added
+
+- Generic class for containers (Devices/Brain)
+- Base class for Device inheritance (DeviceTemplate)
+- getIPAddress() for identifying IP of network interfaces
+- Base support for PyQt5 forms via karen-panel
+
+### Modified
+
+- Separated features into separate packages
+- Rewritten brain/container communications using "accepts"
+- Moved Streaming Client into karen.shared
+- Defaulting containers to interface IP rather than just localhost
+- Documentation updated to reflect new patterns
+
+### Removed
+
+- Separated features into separate packages
+- See karen-brain, karen-device, karen-watcher, karen-listener, karen-speaker
+
 ## [0.6.0] - 2021-07-02
 
 ### Added

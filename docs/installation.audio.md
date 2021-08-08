@@ -2,7 +2,7 @@
 
 Regardless of what operating system or device you're using there will likely be some gremlins in the audio setup.  This page exists to help you troubleshoot those items.
 
-To use the information on this page is primarily focused at folks using __PulseAudio__ as their sound engine.
+NOTICE: The information on this page is primarily focused at folks using __PulseAudio__ as their sound engine.
 
 ## Listing Audio Devices by Device ID
 Inevitably you are going to need to know your device IDs for your input and output devices.  The good news is that it is relatively simple _once Pulse Audio is installed_.  Here are the commands.
@@ -37,8 +37,8 @@ You can convert any text you want into voice using festival's --tts switch.  It 
 echo "Testing speech" | festival --tts
 ```
 
-## Install/Compile the Visualizer (optional)
-You can install the visualizer program called "vis" if you want a dynamic visual to go along with your text-to-speech.  It's a pretty simple compile.  The project is hosted on Github as [dpayne/cli-visualizer](https://github.com/dpayne/cli-visualizer)
+## Install/Compile a Console-Based Visualizer (optional)
+You can install a visualizer program called "vis" if you want a dynamic visual to go along with your text-to-speech output as a console-based visualization.  It's a pretty simple compile.  The project is hosted on Github as [dpayne/cli-visualizer](https://github.com/dpayne/cli-visualizer)
 
 ### Required Libraries
 ```

@@ -1,6 +1,6 @@
 site_name: ProjectKaren.Ai Docs
 site_url: https://projectkaren.ai/
-repo_url: https://github.com/lnxusr1/karen/
+repo_url: https://github.com/lnxusr1/karen-ai/
 
 theme: 
     name: readthedocs
@@ -19,20 +19,9 @@ nav:
       - Audio-only Example: 'config.example.md'
       - Audio/Video Example: 'config.example.video.md'
     - Operations:
-      - karen.Brain: 'karen.brain.md'
-      - karen.DeviceContainer: 'karen.device.md'
-    - Devices:
-      - karen.listener.Listener: 'karen.listener.md'
-      - karen.speaker.Speaker: 'karen.speaker.md'
-    - Functions:
-      - Skill Manager: 'karen.skillmanager.md'
-      - Shared Library: 'karen.shared.md'
-    - Handlers: 'karen.handlers.md'
+      - Custom Devices: 'karen.devices.md'
     - Skills:
-      - Skill Template: 'karen.skill.md'
-      - HelloSkill: 'karen.skills.helloskill.md'
-      - KnockKnockSkill: 'karen.skills.knockknockskill.md'
-      - TellDateTimeSkill: 'karen.skills.telldatetimeskill.md'
+      - Creating your own Skill: 'karen.skill.md'
     - Links:
       - '@ Code': 'https://projectkaren.ai/code'
       - '@ Community': 'https://projectkaren.ai/discussion'
@@ -40,5 +29,10 @@ nav:
       - '@ ProjectKaren.Ai': 'https://projectkaren.ai'
 
 plugins:
-- search
-- mkdocstrings
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          setup_commands:
+          - import sys
+          - sys.path.append("src")

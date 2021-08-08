@@ -1,9 +1,0 @@
-mkdocs
-mkdocstrings
-numpy
-deepspeech
-webrtcvad
-pyaudio
-urllib3
-requests
-padatious
