@@ -100,6 +100,7 @@ with all plugins and dependencies.
 
 ::
 
+    pip3 install scikit-build # includes skbuild for compiling opencv
     pip3 install karen-brain karen-device karen-listener karen-watcher karen-speaker
 
 **NOTE:** The installation of OpenCV is automatically triggered when you
