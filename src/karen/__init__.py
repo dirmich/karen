@@ -12,7 +12,7 @@ import json
 import uuid
 
 # version as tuple for simple comparisons 
-VERSION = (0, 7, 0) 
+VERSION = (0, 7, 1) 
 # string created from tuple to avoid inconsistency 
 __version__ = ".".join([str(x) for x in VERSION])
 __app_name__ = "Project Karen"

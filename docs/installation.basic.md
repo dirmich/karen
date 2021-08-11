@@ -1,6 +1,16 @@
 # Installation
 Karen is available as separate components that together create an extensible environment for devices and the processing of input/output.  These components can be installed together or separately depending on your needs.  This page attempts to articulate how to install each of the components and their dependencies.
 
+You may want to install Karen in a virtual python environment.  If so and you plan to use the PyQt5 libraries then we highly recommend including system-site-packages in your virtual environment.  This is due to a limitation in PyQt5 that requires manual installation if you don't include the pre-built packages in Linux (```apt-get install python3-pyqt5```).
+
+To create a virtual environment try the following:
+
+```
+python3 -m venv /path/to/virtual/environment --system-site-packages
+```
+
+Then just use the binaries in the new virtual environment for the rest of the python package installations.
+
 ## Install the BRAIN
 In order for Karen to work properly you must have a running instance of ```karen_brain.Brain()```.  The brain is fairly straightforward to install with the following steps:
 
@@ -11,6 +21,7 @@ sudo apt-get install libfann2 python3-fann2
 ```
 pip3 install karen-brain
 ```
+__NOTE:__ If you get an error on "Cannot find FANN libs" then please see the [Raspberry Pi instructions](installation.raspberrypi.md).
 
 Then to start the brain you can run the following:
 

@@ -11,6 +11,14 @@ if __name__ == "__main__":
     parser.add_argument('-v','--version', action="store_true", help="Print Version")
     parser.add_argument('--watcher', action="store_true", help="Use watcher default configuration")
     
+    listener_group = parser.add_argument_group('Listener Arguments')
+    
+    listener_group.add_argument('--download-models', action="store_true", help="Download listener models")
+    listener_group.add_argument('--model-version', default=None, help="Deepspeech Model Version")
+    listener_group.add_argument('--model-type', default="pbmm", help="Deepspeech Model Type as pbmm or tflite")
+    listener_group.add_argument('--include-scorer', action="store_true", help="Include scorer model")
+    listener_group.add_argument('--overwrite', action="store_true", help="Overwrite models")
+    
     logging_group = parser.add_argument_group('Logging Arguments')
     
     logging_group.add_argument('--log-level', default="info", help="Options are debug, info, warning, error, and critical")
@@ -21,6 +29,19 @@ if __name__ == "__main__":
     if ARGS.version:
         print(karen.__app_name__,"v"+karen.__version__)
         quit()
+        
+    if ARGS.download_models:
+        try:
+            import karen_listener
+            if karen_listener.download_models(version=ARGS.model_version, model_type=ARGS.model_type, include_scorer=ARGS.include_scorer, overwrite=ARGS.overwrite):
+                print("Models downloaded successfully.")
+                quit()
+        except:
+            raise
+        
+        print("Error downloading models.")
+        quit()
+            
 
     configFile = ARGS.config
     if configFile is not None:

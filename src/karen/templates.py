@@ -30,6 +30,7 @@ class Container():
         self.id = uuid.uuid4()
         self.type = "container"
 
+        self._thread = None
         self._serverSocket = None             # Socket object (where the listener lives)
         self._serverThread = None             # Thread object for TCP Server (Should be non-blocking)
         self._threadPool = []           # List of running threads (for incoming TCP requests)
