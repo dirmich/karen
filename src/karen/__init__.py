@@ -98,3 +98,40 @@ def start(configFile=None, log_level="info", log_file=None):
     if brain is not None:
         brain.wait()
         
+    if brain._doRestart or container._doRestart:
+        cmd = sys.executable + " " + " ".join(sys.argv)
+        
+        import time
+        print("Waiting for processes to close")
+        time.sleep(5)
+        print("Restarting")
+        
+        myEnv = dict(os.environ)
+        #myEnv["GREPDB"] = cmd
+        #print(myEnv)
+        
+        #del myEnv["GIO_LAUNCHED_DESKTOP_FILE_PID"]
+        #del myEnv["XDG_RUNTIME_DIR"]
+        #del myEnv["GPG_AGENT_INFO"]
+        
+        #del myEnv["GDK_CORE_DEVICE_EVENTS"]
+        #del myEnv["GIO_LAUNCHED_DESKTOP_FILE_PID"]
+        #del myEnv["GIO_LAUNCHED_DESKTOP_FILE"]
+        #del myEnv["IDE_PROJECT_ROOTS"]
+        #del myEnv["LIBOVERLAY_SCROLLBAR"]
+        #del myEnv["OXYGEN_DISABLE_INNER_SHADOWS_HACK"]
+        #del myEnv["PYDEV_COMPLETER_PYTHONPATH"]
+        #del myEnv["PYDEVD_SHOW_COMPILE_CYTHON_COMMAND_LINE"]
+        #del myEnv["PYTHONIOENCODING"]
+        #del myEnv["PYTHONPATH"]
+        #del myEnv["PYTHONUNBUFFERED"]
+        #del myEnv["QT_QPA_FONTDIR"]
+        
+        if "QT_QPA_PLATFORM_PLUGIN_PATH" in myEnv:
+            del myEnv["QT_QPA_PLATFORM_PLUGIN_PATH"]    
+        
+        #myEnv = {"QT_DEBUG_PLUGINS": "offscreen", "DISPLAY": str(os.environ["DISPLAY"]), 'GREPDB': cmd }
+        
+        import subprocess
+        subprocess.call(cmd, shell=True, stdout=sys.stdout, stderr=sys.stderr, stdin=sys.stdin,
+            env=myEnv)

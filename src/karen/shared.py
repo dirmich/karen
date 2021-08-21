@@ -338,7 +338,7 @@ def sendSDCPRequest():
 
     return devices
 
-def sendHTTPRequest(url, type="POST", params=None, jsonData=None, origin=None, groupName=None, isStream=True):
+def sendHTTPRequest(url, type="POST", params=None, jsonData=None, origin=None, groupName=None, isStream=True, headers=None):
     """
     Sends a HTTP request to a remote host.
     
@@ -350,6 +350,7 @@ def sendHTTPRequest(url, type="POST", params=None, jsonData=None, origin=None, g
         origin (str): The origination of the request (for context)
         groupName (str): The name of the group originating the request (for context)
         isStream (bool): indicates if the request is expected to return a stream object or a static response.
+        headers (dict): Name/Value pairs for headers
         
     Returns:
         (bool, contentType, contentObject): Status of request (True for success; HTTP content type of response; Object value or stream pointer of response.
@@ -364,11 +365,13 @@ def sendHTTPRequest(url, type="POST", params=None, jsonData=None, origin=None, g
     logger = logging.getLogger("HTTP")
 
     request_body = None
-    headers = None
     
     try:
         if jsonData is not None:
-            headers = { "Content-Type": "application/json" } #, "X-CLIENT-URL": context.clientURL, "X-BRAIN-URL": context.brainURL }
+            if headers is None:
+                headers = {}
+                
+            headers["Content-Type"] = "application/json" #, "X-CLIENT-URL": context.clientURL, "X-BRAIN-URL": context.brainURL }
             request_body = json.dumps(jsonData)
         else:
             if params is not None and isinstance(params, dict):
@@ -435,7 +438,11 @@ class KHTTPHandler(BaseHTTPRequestHandler):
         self.container = container
         self.socket = sock
         self.address = address # tuple (ip, port)
+        self.authenticated = False 
         
+        if self.container is None or self.container.authenticationKey is None:
+            self.authenticated = True
+             
         self.rfile = raw_request
         self.raw_requestline = self.rfile.readline() if raw_request is not None else None # first line of request e.g. "GET /index.html"
         self.error_code = None
@@ -451,6 +458,8 @@ class KHTTPHandler(BaseHTTPRequestHandler):
         self.isDeviceRequest = False
         self.isBrainRequest = False
         self.isTypeRequest = False
+        self.isAuthRequest = False
+        
         self.item = None
         self.action = None
         self.origin = origin
@@ -488,6 +497,12 @@ class KHTTPHandler(BaseHTTPRequestHandler):
 
         if self.headers.get('x-group') is not None:
             self.groupName = parse_header(self.headers.get("x-group"))[0]
+        
+        if self.authenticated == False and self.headers.get('cookie') is not None:
+            for item in self.headers.get("cookie").split(";"):
+                (key, keyVal) = item.split("=")
+                if key == "token" and keyVal == self.container.authenticationKey:
+                    self.authenticated = True
                 
     def sendRedirect(self, url):
         if self.isResponseSent: # Bail if we already sent a response to requestor
@@ -662,6 +677,12 @@ class KHTTPHandler(BaseHTTPRequestHandler):
             self.isFileRequest = True
             self.item = "favicon.svg" # Switched the ICON extension!!!
             self.action = "GET"
+            return True
+        
+        if self.path.lower() == "/auth":
+            self.isAuthRequest = True
+            self.item = ""
+            self.action = "AUTH"
             return True
         
         if not isinstance(self.path, str) or str(self.path).lower() in ["/","/admin","/admin/"]:

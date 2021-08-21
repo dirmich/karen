@@ -1,7 +1,12 @@
 {
 	"settings": {
 		"libraryFolder": null,
-		"skillsFolder": null
+		"skillsFolder": null,
+		"authentication": {
+			"key": null,
+			"username": "admin",
+			"password": "admin"
+		}
 	},
 	"container": {
 		"start": true,
