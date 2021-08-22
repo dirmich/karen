@@ -14,6 +14,8 @@ import urllib3
 import requests 
 import sys
 import traceback 
+import os
+import subprocess
 import queue
 from errno import ENOPROTOOPT
 from email.utils import formatdate
@@ -121,6 +123,60 @@ def getFileContents(fileName, mode="r"):
             content = fp.read()
     
     return content
+
+def upgradePackage(packageName):
+    logger = logging.getLogger(packageName)
+    
+    cmd = sys.executable + " -m pip install --upgrade --no-input " + packageName
+    
+    myEnv = dict(os.environ)
+
+    if "QT_QPA_PLATFORM_PLUGIN_PATH" in myEnv:
+        del myEnv["QT_QPA_PLATFORM_PLUGIN_PATH"]
+    
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=sys.stdin,
+        env=myEnv)
+    
+    outData, errData = p.communicate() 
+    
+    if outData is not None:
+        if not isinstance(outData, list):
+            try:
+                outData = outData.decode()
+            except:
+                pass 
+            
+            outData = str(outData).split("\n")
+
+        if isinstance(outData, list):
+            for line in outData:
+                if str(line).strip() != "":
+                    logger.info(str(line))
+        else:
+            if str(outData).strip() != "":
+                logger.info(str(outData))
+
+    if errData is not None and str(errData).strip() != "": 
+        if not isinstance(errData, list):
+            try:
+                errData = errData.decode()
+            except:
+                pass 
+
+            errData = str(errData).split("\n")
+
+        if isinstance(errData, list):
+            for line in errData:
+                if str(line).strip() != "":
+                    logger.error(str(line))
+        else:
+            if str(errData).strip() != "":
+                logger.error(str(errData))
+    
+    if p.returncode is not None and str(p.returncode) == "0":
+        return True
+    else:
+        return False
 
 class StreamingClient(object):
     """

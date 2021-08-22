@@ -101,10 +101,12 @@ def start(configFile=None, log_level="info", log_file=None):
     if brain._doRestart or container._doRestart:
         cmd = sys.executable + " " + " ".join(sys.argv)
         
+        logger = logging.getLogger("RESTART")
+        
         import time
-        print("Waiting for processes to close")
+        logger.info("Waiting for processes to close")
         time.sleep(5)
-        print("Restarting")
+        logger.info("Restarting")
         
         myEnv = dict(os.environ)
         #myEnv["GREPDB"] = cmd
@@ -133,5 +135,5 @@ def start(configFile=None, log_level="info", log_file=None):
         #myEnv = {"QT_DEBUG_PLUGINS": "offscreen", "DISPLAY": str(os.environ["DISPLAY"]), 'GREPDB': cmd }
         
         import subprocess
-        subprocess.call(cmd, shell=True, stdout=sys.stdout, stderr=sys.stderr, stdin=sys.stdin,
+        subprocess.Popen(cmd, shell=True, stdout=sys.stdout, stderr=sys.stderr, stdin=sys.stdin,
             env=myEnv)

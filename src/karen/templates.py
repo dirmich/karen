@@ -1,5 +1,5 @@
 import os, logging, socket, ssl, time, uuid
-from .shared import threaded, getIPAddress, KHTTPHandler, sendHTTPRequest
+from .shared import threaded, getIPAddress, KHTTPHandler, sendHTTPRequest, upgradePackage
 from urllib.parse import urljoin
 
 class Container():
@@ -22,6 +22,8 @@ class Container():
         from . import __app_name__, __version__
         self._version = __version__
         self._appName = __app_name__
+        
+        self._packageName = "karen"
         
         self.groupName = groupName
         self.authenticationKey = authentication["key"] if "key" in authentication else None
@@ -72,7 +74,7 @@ class Container():
         if self.brain_url is None:
             self.brain_url = "http://localhost:8080"
         
-        self.accepts = ["stop","stopDevices","status","restart"]
+        self.accepts = ["stop","stopDevices","status","restart","upgrade"]
         self.devices = {}
         
     def initialize(self):
@@ -458,6 +460,9 @@ class Container():
     def restart(self, httpRequest=None):
         self._doRestart = True
         return self.stop(httpRequest)
+    
+    def upgrade(self, httpRequest=None):
+        return upgradePackage(self._packageName)
     
     def stopDevices(self, httpRequest=None):
         """
