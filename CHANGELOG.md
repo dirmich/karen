@@ -13,6 +13,7 @@ This is a major change and is not backwards compatible in our quest to reach 1.0
 - UPNP server and client libraries for brain auto-detection
 - API key-based authentication for communication between devices/brain
 - User/Password authentication for web portal
+- Remote upgrade capability for containers and devices
 
 ### Modified
 
