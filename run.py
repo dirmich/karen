@@ -1,13 +1,4 @@
 import sys
-
-sys.path.insert(0, "/home/lnxusr1/git/karen/src")
-sys.path.insert(0, "/home/lnxusr1/git/karen-device/src")
-sys.path.insert(0, "/home/lnxusr1/git/karen-brain/src")
-sys.path.insert(0, "/home/lnxusr1/git/karen-watcher/src")
-sys.path.insert(0, "/home/lnxusr1/git/karen-listener/src")
-sys.path.insert(0, "/home/lnxusr1/git/karen-speaker/src")
-sys.path.insert(0, "/home/lnxusr1/git/karen-panel/src")
-
 import os
 import karen
 
