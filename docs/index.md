@@ -62,7 +62,7 @@ Then just install the components that you require.  The full list of install is 
 
 ```
 pip3 install scikit-build # for opencv-python-contrib compile using skbuild
-pip3 install karen-brain karen-device karen-listener karen-watcher karen-speaker
+pip3 install karen-brain karen-device karen-plugin-listener karen-plugin-watcher karen-plugin-speaker karen-plugin-panel
 ```
 __NOTE:__ The installation of OpenCV is automatically triggered when you install karen-plugin-watcher and this may take a while on the Raspberry Pi OS as it has to recompile some of the libraries.  Patience is required here as the spinner icon appeared to get stuck several times in our tests... so just let it run until it completes.  If it encounters a problem then it'll print out the error for additional troubleshooting.
 
