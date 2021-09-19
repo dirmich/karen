@@ -1,3 +1,6 @@
+## WARNING:  This file is now deprecated and will be removed in an upcoming release.
+##           Use "python -m karen.run" for similar functionality.
+
 import sys
 import os
 import karen
