@@ -14,9 +14,10 @@ class MyCustomDevice(DeviceTemplate):
         self.callback = callback
         self._isRunning = False 
         
-    @property
+	@property
     def accepts(self):
-        return ["start","stop"]
+        return ["start","stop"] # Add "upgrade" to allow 
+                                # remote "pip install --upgrade" option.
     
     @property
     def isRunning(self):
@@ -29,4 +30,7 @@ class MyCustomDevice(DeviceTemplate):
     def stop(self, httpRequest=None):
         self._isRunning = False
         return True
+    
+    def upgrade(self, httpRequest=None):
+        return upgradePackage(self._packageName)
 ```

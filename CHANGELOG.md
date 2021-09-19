@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.1] - 2021-09-19
+
+### Added
+
+- Build method shell scripts
+- PyPi build method shell scripts
+- UPNP server and client libraries for brain auto-detection
+- API key-based authentication for communication between devices/brain
+- User/Password authentication for web portal
+- Remote upgrade capability for containers and devices
+- Ability to execute karen as a module with "python -m karen.run"
+
+### Modified
+
+- Documentation on setting up virtual environment for installation
+- Documentation on Raspberry Pi issues with FANN2 library and Python bindings
+- Download Modules function within karen base for easier calling
+- Fix for missing self.thread object in container class
+
 ## [0.7.0] - 2021-08-08 
 
 This is a major change and is not backwards compatible in our quest to reach 1.0 status.

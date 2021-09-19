@@ -1,19 +1,16 @@
-## WARNING:  This file is now deprecated and will be removed in an upcoming release.
-##           Use "python -m karen.run" for similar functionality.
-
 import sys
 import os
-import karen
+from karen import __version__, __app_name__, start
 
 if __name__ == "__main__":
     
     import argparse
-    parser = argparse.ArgumentParser(description=karen.__app_name__ + " v" + karen.__version__, formatter_class=argparse.RawTextHelpFormatter, epilog='''To start the services try:\nrun.py --config [CONFIG_FILE]\n\nMore information available at:\nhttp://projectkaren.ai''')
+    parser = argparse.ArgumentParser(description=__app_name__ + " v" + __version__, formatter_class=argparse.RawTextHelpFormatter, epilog='''To start the services try:\nrun.py --config [CONFIG_FILE]\n\nMore information available at:\nhttp://projectkaren.ai''')
     #parser.add_argument('--locale', default="en_us", help="Language Locale")
 
     parser.add_argument('-c','--config', default=None, help="Configuration file")
     parser.add_argument('-v','--version', action="store_true", help="Print Version")
-    parser.add_argument('--watcher', action="store_true", help="Use watcher default configuration")
+    parser.add_argument('--video', action="store_true", help="Use watcher default configuration")
     
     listener_group = parser.add_argument_group('Listener Arguments')
     
@@ -31,7 +28,7 @@ if __name__ == "__main__":
     ARGS = parser.parse_args()
     
     if ARGS.version:
-        print(karen.__app_name__,"v"+karen.__version__)
+        print(__app_name__,"v"+__version__)
         quit()
         
     if ARGS.download_models:
@@ -54,7 +51,7 @@ if __name__ == "__main__":
             raise Exception("Configuration file does not exist.")
             quit(1)
     else:
-        if ARGS.watcher:
+        if ARGS.video:
             configFile = "video"
             
-    karen.start(configFile=configFile, log_level=ARGS.log_level, log_file=ARGS.log_file)
+    start(configFile=configFile, log_level=ARGS.log_level, log_file=ARGS.log_file)

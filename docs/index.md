@@ -52,11 +52,23 @@ sudo apt-get install \
   cmake
 ```
 
+At this point you can create a virtual environment for python if you like but to use PyQt5 panels we've found it best to include system-site-packages as follows:
+
 ```
+python3 -m venv /path/to/virtual/env --system-site-packages
+```
+
+Then just install the components that you require.  The full list of install is as follows:
+
+```
+pip3 install scikit-build # for opencv-python-contrib compile using skbuild
 pip3 install karen-brain karen-device karen-listener karen-watcher karen-speaker
 ```
 __NOTE:__ The installation of OpenCV is automatically triggered when you install karen-plugin-watcher and this may take a while on the Raspberry Pi OS as it has to recompile some of the libraries.  Patience is required here as the spinner icon appeared to get stuck several times in our tests... so just let it run until it completes.  If it encounters a problem then it'll print out the error for additional troubleshooting.
 
+You may also get an error related to "Cannot find FANN libs" on the Raspberry Pi.  If that happens then review the [Raspberry Pi instructions](installation.raspberrypi.md).
+
+## Starting Up: Option #1
 Once installed you can create a new instance of Karen using a [configuration file](https://docs.projectkaren.ai/en/latest/config.overview/) with the following:
 
 ```
@@ -71,6 +83,17 @@ karen.start()
 __NOTE:__ Use ```model_type="tflite"``` if running on the Raspberry Pi.  If you have a webcam or video recording device you can also try ```karen.start("video")``` to optionally start the watcher device.
 
 Read more about startup options including starting the Watcher in [Starting Up](https://docs.projectkaren.ai/en/latest/karen/).
+
+## Starting Up: Option #2
+You can also execute Karen directly as a module.  To do so try the following:
+
+```
+python3 -m karen.run 
+```
+
+You can call with the ```--help``` option for more command line options including specifying a custom configuration file.
+
+## Web Control Panel
 
 If everything is working properly you should be able to point your device to the web control panel running on the __Brain__ engine to test it out.  The default URL is:
 

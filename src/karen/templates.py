@@ -1,9 +1,9 @@
 import os, logging, socket, ssl, time, uuid
-from .shared import threaded, getIPAddress, KHTTPHandler, sendHTTPRequest
+from .shared import threaded, getIPAddress, KHTTPHandler, sendHTTPRequest, upgradePackage
 from urllib.parse import urljoin
 
 class Container():
-    def __init__(self, tcp_port=8080, hostname="", ssl_cert_file=None, ssl_key_file=None, brain_url=None, groupName=None):
+    def __init__(self, tcp_port=8080, hostname="", ssl_cert_file=None, ssl_key_file=None, brain_url=None, groupName=None, authentication=None):
         """
         Brain Server Initialization
         
@@ -14,6 +14,7 @@ class Container():
             ssl_key_file (str): The path and file name of the SSL private key (.key or .pem) for secure communications
             brain_url (str): URL of brain device.
             groupName (str): Group or Room name for devices. (optional)
+            authentication (dict): API Key required for web-based access
         
         Both the ssl_cert_file and ssl_key_file must be present in order for SSL to be leveraged.
         """
@@ -22,14 +23,21 @@ class Container():
         self._version = __version__
         self._appName = __app_name__
         
+        self._packageName = "karen"
+        
         self.groupName = groupName
+        self.authenticationKey = authentication["key"] if "key" in authentication else None
+        self.authUser = authentication["username"] if "username" in authentication else "admin"
+        self.authPassword = authentication["password"] if "password" in authentication else "admin"
         
         self.app = None
         
+        self._doRestart = False
         self.isBrain = False
         self.id = uuid.uuid4()
         self.type = "container"
 
+        self._thread = None
         self._serverSocket = None             # Socket object (where the listener lives)
         self._serverThread = None             # Thread object for TCP Server (Should be non-blocking)
         self._threadPool = []           # List of running threads (for incoming TCP requests)
@@ -66,7 +74,7 @@ class Container():
         if self.brain_url is None:
             self.brain_url = "http://localhost:8080"
         
-        self.accepts = ["stop","stopDevices","status"]
+        self.accepts = ["stop","stopDevices","status","restart","upgrade"]
         self.devices = {}
         
     def initialize(self):
@@ -77,6 +85,21 @@ class Container():
         self.logger.debug("Container ["+str(self.type)+"] started with ID = " + str(self.id))
         return True
     
+    def _authenticate(self, httpRequest):
+        if self.authenticationKey is None:
+            return httpRequest.sendJSON({ "error": False, "message": "Authentication completed successfully." })
+        
+        if httpRequest.isJSON:
+            if httpRequest.JSONData is not None and "key" in httpRequest.JSONData:
+                if httpRequest.JSONData["key"] == self.authenticationKey:
+                    return httpRequest.sendJSON({ "error": False, "message": "Authentication completed successfully." }, headers={ "Set-Cookie": "token=" + self.authenticationKey })
+            
+            if httpRequest.JSONData is not None and "username" in httpRequest.JSONData and "password" in httpRequest.JSONData:
+                if httpRequest.JSONData["username"] == str(self.authUser) and httpRequest.JSONData["password"] == str(self.authPassword):
+                    return httpRequest.sendJSON({ "error": False, "message": "Authentication completed successfully." }, headers={ "Set-Cookie": "token=" + self.authenticationKey })
+                    
+        return httpRequest.sendJSON({ "error": True, "message": "Authentication failed." })
+        
     def _purgeThreadPool(self):
         """
         Purges the thread pool of completed or dead threads
@@ -201,8 +224,14 @@ class Container():
     
     def _processRequest(self, httpRequest):
         try:
+            if httpRequest.isAuthRequest:
+                return self._authenticate(httpRequest)
+            
             if httpRequest.isFileRequest:
                 return httpRequest.sendRedirect(self.brain_url)
+        
+            if not httpRequest.authenticated:
+                return httpRequest.sendError()
         
             if (not httpRequest.isTypeRequest) and httpRequest.item in self.devices:
                 result = eval("self.devices[httpRequest.item][\"device\"]."+httpRequest.action+"(httpRequest)")
@@ -238,7 +267,11 @@ class Container():
         Sends current container and child device plugin status to brain
         """
         
-        ret = sendHTTPRequest(urljoin(self.brain_url,"brain/register"), jsonData=self._getStatus(), origin=self.my_url, groupName=self.groupName)[0]
+        headers=None
+        if self.authenticationKey is not None:
+            headers = { "Cookie": "token="+self.authenticationKey}
+            
+        ret = sendHTTPRequest(urljoin(self.brain_url,"brain/register"), jsonData=self._getStatus(), origin=self.my_url, groupName=self.groupName, headers=headers)[0]
         return ret
     
     def addDevice(self, type, device, id=None, autoStart=True, isPanel=False):
@@ -424,6 +457,13 @@ class Container():
             
         return True
     
+    def restart(self, httpRequest=None):
+        self._doRestart = True
+        return self.stop(httpRequest)
+    
+    def upgrade(self, httpRequest=None):
+        return upgradePackage(self._packageName)
+    
     def stopDevices(self, httpRequest=None):
         """
         Stops all devices currently in container's list.
@@ -466,8 +506,12 @@ class Container():
             (bool):  True on success or False on failure.
         """
         
+        headers=None
+        if self.authenticationKey is not None:
+            headers = { "Cookie": "token="+self.authenticationKey}
+        
         jsonData = { "type": inType, "data": data }
-        result = sendHTTPRequest(urljoin(self.brain_url,"/brain/collect"), jsonData=jsonData, origin=self.my_url, groupName=self.groupName)[0]
+        result = sendHTTPRequest(urljoin(self.brain_url,"/brain/collect"), jsonData=jsonData, origin=self.my_url, groupName=self.groupName, headers=headers)[0]
         return result 
     
 class DeviceTemplate():
@@ -481,7 +525,7 @@ class DeviceTemplate():
         
     @property
     def accepts(self):
-        return ["start","stop"]
+        return ["start","stop"] # Add "upgrade" if the device can be upgraded with "pip install --upgrade" command.
     
     @property
     def isRunning(self):
@@ -494,3 +538,6 @@ class DeviceTemplate():
     def stop(self, httpRequest=None):
         self._isRunning = False
         return True
+    
+    def upgrade(self, httpRequest=None):
+        return upgradePackage(self._packageName)

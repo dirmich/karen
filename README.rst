@@ -115,6 +115,18 @@ Once installed you can create a new instance of Karen using a
 file <https://docs.projectkaren.ai/en/latest/config.overview/>`__ with
 the following:
 
+**As a Module:**
+
+::
+
+    python3 -m karen.run --download-models --model-type pbmm
+    python3 -m karen.run
+
+Use ``--model-type tflite`` on the raspberry pi. Use the ``--video``
+switch to start the watcher.
+
+**As Python code:**
+
 ::
 
     import karen_listener
@@ -130,6 +142,9 @@ you have a webcam or video recording device you can also try
 
 Read more about startup options including starting the Watcher in
 `Starting Up <https://docs.projectkaren.ai/en/latest/karen/>`__.
+
+Web Control Panel
+-----------------
 
 If everything is working properly you should be able to point your
 device to the web control panel running on the **Brain** engine to test

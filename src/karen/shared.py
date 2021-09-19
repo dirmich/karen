@@ -14,7 +14,11 @@ import urllib3
 import requests 
 import sys
 import traceback 
+import os
+import subprocess
 import queue
+from errno import ENOPROTOOPT
+from email.utils import formatdate
 
 def dayPart():
     """
@@ -119,6 +123,60 @@ def getFileContents(fileName, mode="r"):
             content = fp.read()
     
     return content
+
+def upgradePackage(packageName):
+    logger = logging.getLogger(packageName)
+    
+    cmd = sys.executable + " -m pip install --upgrade --no-input " + packageName
+    
+    myEnv = dict(os.environ)
+
+    if "QT_QPA_PLATFORM_PLUGIN_PATH" in myEnv:
+        del myEnv["QT_QPA_PLATFORM_PLUGIN_PATH"]
+    
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=sys.stdin,
+        env=myEnv)
+    
+    outData, errData = p.communicate() 
+    
+    if outData is not None:
+        if not isinstance(outData, list):
+            try:
+                outData = outData.decode()
+            except:
+                pass 
+            
+            outData = str(outData).split("\n")
+
+        if isinstance(outData, list):
+            for line in outData:
+                if str(line).strip() != "":
+                    logger.info(str(line))
+        else:
+            if str(outData).strip() != "":
+                logger.info(str(outData))
+
+    if errData is not None and str(errData).strip() != "": 
+        if not isinstance(errData, list):
+            try:
+                errData = errData.decode()
+            except:
+                pass 
+
+            errData = str(errData).split("\n")
+
+        if isinstance(errData, list):
+            for line in errData:
+                if str(line).strip() != "":
+                    logger.error(str(line))
+        else:
+            if str(errData).strip() != "":
+                logger.error(str(errData))
+    
+    if p.returncode is not None and str(p.returncode) == "0":
+        return True
+    else:
+        return False
 
 class StreamingClient(object):
     """
@@ -283,8 +341,76 @@ class TCPStreamingClient(StreamingClient):
             self.sock.close()
             
         return True
+    
+def sendSDCPRequest():
+    """
+    Sends a SDCO/UPNP Request to the network.
+    
+    Returns:
+        (list): list of all devices and their relative headers found on the network.
+    """
+    
+    logger = logging.getLogger("UPNP-CLIENT")
+    logger.info("Broadcasting UPNP search for active devices")
+    
+    msg = \
+        'M-SEARCH * HTTP/1.1\r\n' \
+        'HOST:239.255.255.250:1900\r\n' \
+        'ST:upnp:rootdevice\r\n' \
+        'MX:2\r\n' \
+        'MAN:"ssdp:discover"\r\n' \
+        '\r\n'
+    
+    # Set up UDP socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    s.settimeout(2)
+    s.sendto(msg.encode(), ('239.255.255.250', 1900) )
+    
+    devices = []
+    
+    logger.info("Listening for responses")
+    try:
+        while True:
+            data, addr = s.recvfrom(65507)
+            
+            d = { 
+                "hostname": addr[0],
+                "port": addr[1],
+                "data": data.decode(),
+                "headers": {}
+            }
+            
+            for line in d["data"].split("\n"):
+                if ":" in line:
+                    h = line.split(":",1)
+                    if len(h) > 1:
+                        d["headers"][h[0].strip().upper()] = h[1].strip()
+            
+            logger.debug(str(d))
+            devices.append(d)
 
-def sendHTTPRequest(url, type="POST", params=None, jsonData=None, origin=None, groupName=None, isStream=True):
+    except socket.timeout:
+        pass
+
+    return devices
+
+def sendHTTPRequest(url, type="POST", params=None, jsonData=None, origin=None, groupName=None, isStream=True, headers=None):
+    """
+    Sends a HTTP request to a remote host.
+    
+    Args:
+        url (str):  The address to submit the request.
+        type (str):  The HTTP method of the request (default to POST).
+        params (str): query string-like values of name/value pairs.
+        jsonData (dict): Dictionary object to be converted to JSON string
+        origin (str): The origination of the request (for context)
+        groupName (str): The name of the group originating the request (for context)
+        isStream (bool): indicates if the request is expected to return a stream object or a static response.
+        headers (dict): Name/Value pairs for headers
+        
+    Returns:
+        (bool, contentType, contentObject): Status of request (True for success; HTTP content type of response; Object value or stream pointer of response.
+    """
     
     #FIXME: Add context to request!
     
@@ -295,11 +421,13 @@ def sendHTTPRequest(url, type="POST", params=None, jsonData=None, origin=None, g
     logger = logging.getLogger("HTTP")
 
     request_body = None
-    headers = None
     
     try:
         if jsonData is not None:
-            headers = { "Content-Type": "application/json" } #, "X-CLIENT-URL": context.clientURL, "X-BRAIN-URL": context.brainURL }
+            if headers is None:
+                headers = {}
+                
+            headers["Content-Type"] = "application/json" #, "X-CLIENT-URL": context.clientURL, "X-BRAIN-URL": context.brainURL }
             request_body = json.dumps(jsonData)
         else:
             if params is not None and isinstance(params, dict):
@@ -366,7 +494,11 @@ class KHTTPHandler(BaseHTTPRequestHandler):
         self.container = container
         self.socket = sock
         self.address = address # tuple (ip, port)
+        self.authenticated = False 
         
+        if self.container is None or self.container.authenticationKey is None:
+            self.authenticated = True
+             
         self.rfile = raw_request
         self.raw_requestline = self.rfile.readline() if raw_request is not None else None # first line of request e.g. "GET /index.html"
         self.error_code = None
@@ -382,6 +514,8 @@ class KHTTPHandler(BaseHTTPRequestHandler):
         self.isDeviceRequest = False
         self.isBrainRequest = False
         self.isTypeRequest = False
+        self.isAuthRequest = False
+        
         self.item = None
         self.action = None
         self.origin = origin
@@ -419,6 +553,12 @@ class KHTTPHandler(BaseHTTPRequestHandler):
 
         if self.headers.get('x-group') is not None:
             self.groupName = parse_header(self.headers.get("x-group"))[0]
+        
+        if self.authenticated == False and self.headers.get('cookie') is not None:
+            for item in self.headers.get("cookie").split(";"):
+                (key, keyVal) = item.split("=")
+                if key == "token" and keyVal == self.container.authenticationKey:
+                    self.authenticated = True
                 
     def sendRedirect(self, url):
         if self.isResponseSent: # Bail if we already sent a response to requestor
@@ -595,6 +735,12 @@ class KHTTPHandler(BaseHTTPRequestHandler):
             self.action = "GET"
             return True
         
+        if self.path.lower() == "/auth":
+            self.isAuthRequest = True
+            self.item = ""
+            self.action = "AUTH"
+            return True
+        
         if not isinstance(self.path, str) or str(self.path).lower() in ["/","/admin","/admin/"]:
             self.sendRedirect("/admin/index.html")
             return False
@@ -672,3 +818,266 @@ class KHTTPHandler(BaseHTTPRequestHandler):
         
         return self.JSON
 
+#####
+# Check out the link below for a more complete example of SSDP/UPNP:
+# https://github.com/ZeWaren/python-upnp-ssdp-example
+#####
+class UPNPServer(object):
+    """
+    Simple UPNP Server for announcing availability of services.
+    """
+    
+    def __init__(self, tcp_port=None, hostname=None, usn=None, st='upnp:rootdevice', location=None, server=None, cache_control='max-age=1800', headers=None,
+            parent=None, callback=None):
+        
+        self.parent=parent
+        self._serverSocket = None
+        self._serverThread = None
+        self.tcp_port = tcp_port if tcp_port is not None else 1900
+        self.hostname = hostname if hostname is not None else "239.255.255.250"
+        self.logger = logging.getLogger("UPNP-SRV")
+        self._isRunning = False
+        self.version = self.parent.version
+        self.services = {}
+    
+        if usn is None:
+            if self.parent is not None:
+                usn = 'uuid:'+str(self.parent.id) + '::upnp:rootdevice'
+            else:
+                import uuid
+                usn = 'uuid:'+str(uuid.uuid4()) + '::upnp:rootdevice'
+        
+        if location is None:
+            my_ip = getIPAddress()
+            proto = "http://"
+            if self.parent is not None:
+                if not self.parent.use_http:
+                    proto = "https://"
+                location = proto+str(my_ip)+':'+str(self.parent.tcp_port)
+            else:
+                location = proto + str(my_ip) + ":8080"
+        
+        if server is None:
+            if self.parent is not None and self.parent.isBrain:
+                server = "Project Karen Brain UPNP v"+str(self.parent.version)
+            else:
+                server = "Project Karen UPNP"
+           
+        if self.parent is not None and self.parent.isBrain:
+            if headers is None:
+                headers = {}
+                
+            headers["X-KAREN-TYPE"] = "BRAIN" 
+        
+        self.register(
+            usn,
+            st,
+            location,
+            server=server,
+            cache_control=cache_control,
+            headers=headers)
+    
+    @threaded
+    def _UDPServer(self):
+
+        self._isRunning = True
+        self._serverSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if hasattr(socket, "SO_REUSEPORT"):
+            try:
+                self._serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            except socket.error as le:
+                if le.errno == ENOPROTOOPT:
+                    pass
+                else:
+                    raise
+
+        addr = socket.inet_aton(self.hostname)
+        interface = socket.inet_aton('0.0.0.0')
+        cmd = socket.IP_ADD_MEMBERSHIP
+        self._serverSocket.setsockopt(socket.IPPROTO_IP, cmd, addr + interface)
+        self._serverSocket.bind(('0.0.0.0', self.tcp_port))
+        self._serverSocket.settimeout(1)
+
+        while self._isRunning:
+            try:
+                data, addr = self._serverSocket.recvfrom(1024)
+                self._recv(data, addr)
+            except socket.timeout:
+                continue
+            
+        self._shutdown()
+        
+    def _recv(self, data, addr):
+
+        (host, port) = addr
+
+        try:
+            header = data.decode().split('\r\n\r\n')[0]
+        except ValueError as err:
+            self.logger.error(err)
+            return
+
+        linesIn = header.split('\r\n')
+        cmd = linesIn[0].split(' ') # First line "NOTIFY" or "MSEARCH"
+
+        headers = {}
+        
+        if len(linesIn) > 1:        
+            for line in linesIn[1:]:  # skip first line
+                if len(line.strip()) > 0:
+                    h = line.split(":",1)
+                    if len(h) == 2 and h[0].strip() != "":
+                        headers[h[0].strip().upper()] = h[1].strip() # Convert line into name/value pairs
+
+        self.logger.debug('Incoming "' + str(cmd[0]) + ' ' + str(cmd[1]) + '" from ' + str(host) + ':' + str(port))
+        self.logger.debug('Headers: ' + str(headers)) # Note that headers are uppercased
+        
+        if cmd[0] == 'M-SEARCH' and cmd[1] == '*':
+            self._search(headers, host, port)
+        elif cmd[0] == 'NOTIFY' and cmd[1] == '*':
+            pass # We're not doing anything with NOTIFY requests at the moment
+        else:
+            self.logger.warning('Unknown UPNP request: ' + str(cmd[0]) + ' ' + str(cmd[1]))
+            
+    def _search(self, headers, host, port):
+
+        self.logger.info('Search request for ' + str(headers['ST']))
+
+        for item in self.services.values():
+            if item['ST'] == headers['ST'] or headers['ST'] == 'ssdp:all':
+                response = ['HTTP/1.1 200 OK']
+
+                usn = None
+                for k, v in item.items():
+                    if k == 'USN':
+                        usn = v
+                    if k not in ('HOST','headers','last-seen'):
+                        response.append(str(k) + ': ' + str(v))
+                        
+                    if k == "headers":
+                        if isinstance(v, dict):
+                            for x in v:
+                                response.append(str(x) + ': ' + str(v[x]))
+
+                if usn:
+                    response.append('DATE: '+str(formatdate(timeval=None, localtime=False, usegmt=True)))
+                    self._send_data(('\r\n'.join(response) + '\r\n\r\n'), (host, port))
+
+    def register(self, usn, st, location, server=None, cache_control='max-age=1800', headers=None):
+
+        self.logger.info('Registering ' + str(st) + " (" + str(location) + ")")
+
+        self.services[usn] = {}
+        self.services[usn]['USN'] = usn
+        self.services[usn]['LOCATION'] = location
+        self.services[usn]['ST'] = st
+        self.services[usn]['EXT'] = ''
+        self.services[usn]['SERVER'] = server if server is not None else "UPNP Server"
+        self.services[usn]['CACHE-CONTROL'] = cache_control
+
+        self.services[usn]['last-seen'] = time.time()
+        self.services[usn]["headers"] = headers
+        
+        if self._serverSocket:
+            self._notify(usn)
+
+    def unregister(self, usn):
+        del self.services[usn]
+        return True
+
+    def is_known(self, usn):
+        if usn in self.services:
+            return True
+        
+        return False
+            
+    def _shutdown(self):
+        for st in self.services:
+            self._byebye(st)
+                
+    def _send_data(self, response, destination):
+        self.logger.debug('Send response to '+str(destination))
+        try:
+            self._serverSocket.sendto(response.encode(), destination)
+        except (AttributeError, socket.error) as msg:
+            self.logger.warning("Respond failed to send: " + str(msg))
+                
+    def _byebye(self, usn):
+
+        self.logger.info('Sending ssdp:byebye notification for '+str(usn))
+
+        out_response = [
+            'NOTIFY * HTTP/1.1',
+            'HOST: ' + str(self.hostname) + ":" + str(self.tcp_port),
+            'NTS: ssdp:byebye',
+        ]
+        try:
+            d = dict(self.services[usn].items()) # Copy the original so we don't mess with it.
+            
+            d['NT'] = d['ST']
+
+            del d['ST']
+            del d['last-seen']
+            del d["headers"]
+            
+            for item in d:
+                out_response.append(str(item) + ": " + str(d[item]))
+
+            self.logger.debug(str(out_response))
+        
+            if self._serverSocket:
+                try:
+                    self._serverSocket.sendto(('\r\n'.join(out_response) + "\r\n\r\n").encode(), (self.hostname, self.tcp_port))
+                except (AttributeError, socket.error) as msg:
+                    self.logger.error("Failure sending byebye notification: " + str(msg))
+        except KeyError as msg:
+            self.logger.error("Error creating byebye notification: " + str(msg))
+    
+    def _notify(self, usn):
+
+        self.logger.info('Sending alive notification for '+str(usn))
+
+        out_response = [
+            'NOTIFY * HTTP/1.1',
+            'HOST: ' + str(self.hostname) + ":" + str(self.tcp_port),
+            'NTS: ssdp:alive',
+        ]
+        
+        d = dict(self.services[usn].items()) # Copy the original so we don't mess with it.
+            
+        d['NT'] = d['ST']
+        
+        del d['ST']
+        del d['last-seen']
+        del d["headers"]
+        
+        for item in d:
+            out_response.append(str(item) + ": " + str(d[item]))
+
+        self.logger.debug(str(out_response))
+        
+        try:
+            self._serverSocket.sendto('\r\n'.join(out_response).encode(), (self.hostname, self.tcp_port))
+            self._serverSocket.sendto('\r\n'.join(out_response).encode(), (self.hostname, self.tcp_port))
+        except (AttributeError, socket.error) as msg:
+            self.logger.warning("Failure sending out alive notification: " + str(msg))
+    
+    @property
+    def accepts(self):
+        return ["start","stop"]
+    
+    def isRunning(self):
+        return self._isRunning
+    
+    def start(self, httpRequest=None):
+        self._serverThread = self._UDPServer()
+        return True
+        
+    def stop(self, httpRequest=None):
+        self._isRunning = False
+        
+        if self._serverThread is not None:
+            self._serverThread.join()
+        
+        return True
