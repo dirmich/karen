@@ -525,7 +525,7 @@ class DeviceTemplate():
         
     @property
     def accepts(self):
-        return ["start","stop"]
+        return ["start","stop"] # Add "upgrade" if the device can be upgraded with "pip install --upgrade" command.
     
     @property
     def isRunning(self):
@@ -538,3 +538,6 @@ class DeviceTemplate():
     def stop(self, httpRequest=None):
         self._isRunning = False
         return True
+    
+    def upgrade(self, httpRequest=None):
+        return upgradePackage(self._packageName)

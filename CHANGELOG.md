@@ -2,9 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.7.1] - TBD
-
-This is a major change and is not backwards compatible in our quest to reach 1.0 status.
+## [0.7.1] - 2021-09-19
 
 ### Added
 
@@ -14,6 +12,7 @@ This is a major change and is not backwards compatible in our quest to reach 1.0
 - API key-based authentication for communication between devices/brain
 - User/Password authentication for web portal
 - Remote upgrade capability for containers and devices
+- Ability to execute karen as a module with "python -m karen.run"
 
 ### Modified
 

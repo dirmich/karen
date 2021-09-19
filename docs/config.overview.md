@@ -39,6 +39,23 @@ Beneath your skill folder you should have your skills each located in a separate
             -> hello.intent
 ```
 
+## Authentication
+
+Karen allows for key-based authentication between the devices and the brain.  If this authentication is enabled then it will also allow for a login user/password to be set for the web control panel.  These can be set in the global settings portion of the config as follows:
+
+```
+{
+	"settings": {
+		"authentication": {
+			"key": "ac2f81b0-6eaf-4726-8ede-e45bbc85ecb2",
+			"username": "admin",
+			"password": "admin"
+		}
+	}
+}
+```
+To disable authentication then either remove the section or set the key to null as ```"key": null```.  The default configuration does not use authentication.
+
 ## Configuring the Brain
 
 The Brain is what you might think.  It is the central processing unit and target for all data collections and inputs.  Its sole purpose is to process those inputs and determine if an output or action should be taken.  If so then it sends that message out to Device Containers to produce the needed output.
@@ -59,6 +76,7 @@ A sample brain configuration is as follows:
 		"groupName": "core",
 		"tcp_port": 8080,
 		"hostname": null,
+		"startUPNP": true,
 		"ssl": {
 		    "use_ssl": false,
 			"cert_file": null,
@@ -149,11 +167,32 @@ Here's a simple device container configuration with one listener class and one s
 
 ### Speaker Device with an External Brain
 
-Now that we've covered the pieces, it is important to note that some sections are not optional.
+Now that we've covered the pieces, it is important to note that depending on your configuration you may need some extra sections.
 
-You must include a brain section in all configurations.  The brain must at least specify a TCP Port and Hostname.  To specify a device you can leave the brain's "start" value to false if you intend to use another instance to serve the brain routines.
+For example, if you do not enable UPNP on the brain then you must include a brain section in all the device configurations.  The brain section in this case must at least specify a TCP Port and Hostname.  To specify a device-only without starting a brain you can leave the brain's "start" value to false if you intend to use another instance to serve the brain routines.
 
-#### Putting it all Together
+#### Device using UPNP to find the Brain on the network
+```
+{
+	"container": {
+		"start": true,
+		"groupName": "Living Room",
+		"tcp_port": 8081,
+		"hostname": null,
+		"ssl": {
+			"cert_file": null,
+			"key_file": null
+		},
+		"devices": [
+			{
+				"type": "karen_speaker.Speaker"
+			}
+		]
+	}
+}
+```
+
+#### Device with specified Brain connection
 ```
 {
 	"brain": {
