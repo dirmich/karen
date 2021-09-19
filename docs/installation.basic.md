@@ -6,6 +6,7 @@ You may want to install Karen in a virtual python environment.  If so and you pl
 To create a virtual environment try the following:
 
 ```
+sudo apt-get install python3-venv
 python3 -m venv /path/to/virtual/environment --system-site-packages
 ```
 
@@ -90,7 +91,7 @@ See more details in the [configuration overview](config.overview.md) on how to i
 The Listener plugin allows Karen to receive audio input and then process it via Speech-to-Text for further processing in the Brain module.  To install the listener follow the steps below:
 
 ```
-sudo apt-get install libportaudio2 libasound2-dev
+sudo apt-get install libportaudio2 libasound2-dev python3-dev
 ```
 
 ```

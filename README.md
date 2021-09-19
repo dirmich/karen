@@ -44,6 +44,7 @@ sudo apt-get install \
   python3-fann2 \
   python3-pyaudio \
   python3-pyqt5 \
+  python3-dev \
   festival \
   festvox-us-slt-hts  \
   libportaudio2 \
