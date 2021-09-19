@@ -3,6 +3,12 @@ There are lots of ways to leverage Karen.  You can import the device modules lik
 
 To use the listener you will need to either download the speech models or reference them in the configuration file.  You can download the models with the following:
 
+__As a module:__
+```
+python3 -m karen.run --download-models --model-type pbmm
+```
+
+__As code:__
 ```
 import karen_listener
 model_type = "pbmm"	# Set this to "tflite" on the Raspberry Pi
@@ -17,6 +23,12 @@ This method will attempt to download the deepspeech models if they don't already
 
 To run Karen with just the Listener and Speaker enabled try the following:
 
+__As a module:__
+```
+python3 -m karen.run 
+```
+
+__As code:__
 ```
 import karen
 karen.start()
@@ -28,6 +40,12 @@ This will start Karen with the [Basic Audio Example](config.example.md).
 
 To run Karen with just the all the built-in devices enabled try the following:
 
+__As a module:__
+```
+python3 -m karen.run --video
+```
+
+__As code:__
 ```
 import karen
 karen.start("video")
@@ -39,9 +57,15 @@ This will start Karen with the [Basic Audio+Video Example](config.example.video.
 
 To run Karen with your own custom configuration:
 
+__As a module:__
+```
+python3 -m karen.run --config /path/to/config.json
+```
+
+__As code:__
 ```
 import karen
-karen.start("/path/to/your/config.json")
+karen.start("/path/to/config.json")
 ```
 
 Karen's configuration file is pretty advanced so make sure you read the [Configuration Overview](config.overview.md).  

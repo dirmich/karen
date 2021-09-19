@@ -4,7 +4,12 @@
 {
 	"settings": {
 		"libraryFolder": null,
-		"skillsFolder": null
+		"skillsFolder": null,
+		"authentication": {
+			"key": null,
+			"username": "admin",
+			"password": "admin"
+		}
 	},
 	"container": {
 		"start": true,
@@ -64,6 +69,7 @@
 		"groupName": "core",
 		"tcp_port": 8080,
 		"hostname": null,
+		"startUPNP": true,
 		"ssl": {
 		    "use_ssl": false,
 			"cert_file": null,

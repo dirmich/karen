@@ -11,6 +11,8 @@ python3 -m venv /path/to/virtual/environment --system-site-packages
 
 Then just use the binaries in the new virtual environment for the rest of the python package installations.
 
+__NOTE:__ When Karen runs the program is configured to save its configuration and model files to the folder ```~/.karen/```.  This may be handy for troubleshooting.
+
 ## Install the BRAIN
 In order for Karen to work properly you must have a running instance of ```karen_brain.Brain()```.  The brain is fairly straightforward to install with the following steps:
 
@@ -23,8 +25,14 @@ pip3 install karen-brain
 ```
 __NOTE:__ If you get an error on "Cannot find FANN libs" then please see the [Raspberry Pi instructions](installation.raspberrypi.md).
 
-Then to start the brain you can run the following:
+Then to start the brain you can run one of the following:
 
+__As a module:__
+```
+python3 -m karen.run --config /path/to/config.json
+```
+
+__As code:__
 ```
 import karen
 karen.start("/path/to/config.json")
@@ -39,8 +47,14 @@ The device container service is used to allow the brain to interact with the inp
 pip3 install karen-device
 ```
 
-Then to start the device service you can run the following:
+Then to start the device service you can run one of the following:
 
+__As a module:__
+```
+python3 -m karen.run --config /path/to/config.json
+```
+
+__As code:__
 ```
 import karen
 karen.start("/path/to/config.json")

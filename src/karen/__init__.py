@@ -10,6 +10,7 @@ import os, sys
 import logging 
 import json 
 import uuid
+import shutil 
 
 # version as tuple for simple comparisons 
 VERSION = (0, 7, 1) 
@@ -56,7 +57,7 @@ def _getImport(libs, val):
 
     return None
 
-def start(configFile=None, log_level="info", log_file=None):
+def start(configFile=None, log_level="info", log_file=None, overwriteConfig=True):
     """
     Static method to start a new instance of karen based on a provided configuration file.
     
@@ -64,8 +65,16 @@ def start(configFile=None, log_level="info", log_file=None):
         configFile (str):  Path and Name of the JSON configuration file.
         log_level (str):  The level of logging to provide (critical, error, warning, info, and debug). (optional)
         log_file (str):  Path and Name of the log file to create (otherwise prints all messages to stderr). (optional)
+        overwriteConfig (bool): Indicates if the ~/.karen/config.json should be overwritten with the supplied config.
     """
     
+    localConfig = os.path.join(os.path.expanduser("~/.karen"),'config.json')
+
+    if configFile is None:
+        # If we have a file in "~/.karen/config.json" then use that one if none are specified
+        if os.path.isfile(localConfig):
+            configFile = localConfig 
+            
     if configFile is None or str(configFile).lower() == "audio":
         configFile = os.path.abspath(os.path.join(os.path.dirname(__file__),"data","basic_config.json"))
     elif str(configFile).lower() == "video":
@@ -75,6 +84,10 @@ def start(configFile=None, log_level="info", log_file=None):
     if not os.path.isfile(configFile):
         raise Exception("Configuration file does not exist.")
         quit(1)
+    
+    if overwriteConfig and configFile != localConfig:
+        os.makedirs(os.path.dirname(localConfig), exist_ok=True)
+        shutil.copyfile(configFile, localConfig) # Save for restart
     
     brain = None
     container = None 

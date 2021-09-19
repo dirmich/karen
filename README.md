@@ -60,6 +60,14 @@ __NOTE:__ The installation of OpenCV is automatically triggered when you install
 
 Once installed you can create a new instance of Karen using a [configuration file](https://docs.projectkaren.ai/en/latest/config.overview/) with the following:
 
+__As a Module:__
+```
+python3 -m karen.run --download-models --model-type pbmm
+python3 -m karen.run
+```
+Use ```--model-type tflite``` on the raspberry pi.  Use the ```--video``` switch to start the watcher.
+
+__As Python code:__
 ```
 import karen_listener
 model_type = "pbmm"                         # use "tflite" for Raspberry Pi
@@ -72,6 +80,8 @@ karen.start()
 __NOTE:__ Use ```model_type="tflite"``` if running on the Raspberry Pi.  If you have a webcam or video recording device you can also try ```karen.start("video")``` to optionally start the watcher device.
 
 Read more about startup options including starting the Watcher in [Starting Up](https://docs.projectkaren.ai/en/latest/karen/).
+
+## Web Control Panel
 
 If everything is working properly you should be able to point your device to the web control panel running on the __Brain__ engine to test it out.  The default URL is:
 

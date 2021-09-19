@@ -66,6 +66,7 @@
 		"groupName": "core",
 		"tcp_port": 8080,
 		"hostname": null,
+		"startUPNP": true,
 		"ssl": {
 		    "use_ssl": false,
 			"cert_file": null,

@@ -68,7 +68,7 @@ __NOTE:__ The installation of OpenCV is automatically triggered when you install
 
 You may also get an error related to "Cannot find FANN libs" on the Raspberry Pi.  If that happens then review the [Raspberry Pi instructions](installation.raspberrypi.md).
 
-## Starting Up
+## Starting Up: Option #1
 Once installed you can create a new instance of Karen using a [configuration file](https://docs.projectkaren.ai/en/latest/config.overview/) with the following:
 
 ```
@@ -83,6 +83,17 @@ karen.start()
 __NOTE:__ Use ```model_type="tflite"``` if running on the Raspberry Pi.  If you have a webcam or video recording device you can also try ```karen.start("video")``` to optionally start the watcher device.
 
 Read more about startup options including starting the Watcher in [Starting Up](https://docs.projectkaren.ai/en/latest/karen/).
+
+## Starting Up: Option #2
+You can also execute Karen directly as a module.  To do so try the following:
+
+```
+python3 -m karen.run 
+```
+
+You can call with the ```--help``` option for more command line options including specifying a custom configuration file.
+
+## Web Control Panel
 
 If everything is working properly you should be able to point your device to the web control panel running on the __Brain__ engine to test it out.  The default URL is:
 
